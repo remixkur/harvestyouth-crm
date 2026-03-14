@@ -26,12 +26,12 @@ export default function LoginForm() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+    <main className="min-h-screen bg-slate-100 flex items-center justify-center p-6 text-slate-900">
       <form
         onSubmit={handleLogin}
-        className="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm border space-y-4"
+        className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm space-y-4"
       >
-        <h1 className="text-3xl font-bold">Вход в CRM</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Вход в HarvestYouth CRM</h1>
         <p className="text-slate-500">Введите email и пароль</p>
 
         <input
@@ -39,7 +39,7 @@ export default function LoginForm() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none"
         />
 
         <input
@@ -47,13 +47,13 @@ export default function LoginForm() {
           placeholder="Пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none"
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none"
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-2xl bg-indigo-600 px-4 py-3 font-medium text-white disabled:opacity-60"
+          className="w-full rounded-2xl bg-indigo-600 px-4 py-3 font-medium text-white disabled:opacity-60 hover:bg-indigo-700"
         >
           {loading ? "Входим..." : "Войти"}
         </button>
