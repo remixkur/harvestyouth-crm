@@ -570,7 +570,7 @@ async function handleRestorePerson(person: Person) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_420px]">
        <aside className="hidden rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm lg:block">
             <nav className="space-y-2">
               <SidebarButton active={activePage === "dashboard"} onClick={() => setActivePage("dashboard")}>
@@ -953,9 +953,7 @@ async function handleRestorePerson(person: Person) {
                     </div>
                   </div>
 
-                  <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                    {selectedPerson ? (<div className="w-full max-w-none rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6">
-  <div className="mb-5">
+                 <div className="w-full rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6">
     <div className="text-[24px] font-bold leading-tight sm:text-[32px]">
       {selectedPerson.full_name}
     </div>
@@ -1361,9 +1359,9 @@ function DashboardList({
 
 function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0">
+    <div>
       <div className="text-sm text-slate-500">{label}</div>
-      <div className="mt-1 break-words text-[15px] font-semibold text-slate-900">
+      <div className="mt-1 text-[15px] font-semibold text-slate-900 break-all">
         {value}
       </div>
     </div>
