@@ -56,7 +56,7 @@ export default function GrowthSection({
       </div>
 
       <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-        <div className="grid grid-cols-[2.4fr_1fr_1fr_1fr_1fr_1.4fr_1.2fr] border-b border-slate-100 bg-slate-50/70 px-6 py-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
+       <div className="hidden grid-cols-[2.4fr_1fr_1fr_1fr_1fr_1.4fr_1.2fr] border-b border-slate-100 bg-slate-50/70 px-6 py-4 text-sm font-semibold uppercase tracking-wide text-slate-500 xl:grid">
           <div>Имя</div>
           <div>Урок 1</div>
           <div>Урок 2</div>
