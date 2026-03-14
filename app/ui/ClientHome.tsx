@@ -636,7 +636,7 @@ async function handleRestorePerson(person: Person) {
   </div>
 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 gap-y-5 sm:grid-cols-2 sm:gap-x-6">
                   <DashboardList
                     title="Готовы к крещению"
                     items={readyForBaptism}
@@ -958,7 +958,9 @@ async function handleRestorePerson(person: Person) {
                       <>
                         <div className="mb-5 flex items-start justify-between gap-4">
                           <div>
-                            <div className="text-[32px] font-bold leading-none">{selectedPerson.full_name}</div>
+                            <div className="text-[24px] font-bold leading-tight sm:text-[32px]">
+  {selectedPerson.full_name}
+</div>
                             <div className="mt-3">
                               <span className={cx("inline-flex rounded-full px-3 py-1 text-sm font-medium", levelBadge[selectedPerson.level] || "bg-slate-100 text-slate-700")}>
                                 {levelLabels[selectedPerson.level] || selectedPerson.level}
@@ -996,7 +998,7 @@ async function handleRestorePerson(person: Person) {
                               className="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none"
                             />
 
-                            <div className="flex gap-3">
+                            <div className="flex flex-col gap-3 sm:flex-row">
                               <button
                                 type="submit"
                                 disabled={saving}
@@ -1015,7 +1017,7 @@ async function handleRestorePerson(person: Person) {
                           </form>
                         ) : (
                           <>
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                            <div className="grid grid-cols-1 gap-y-5 sm:grid-cols-2 sm:gap-x-6">
                               <Detail label="Контакт" value={selectedPerson.contact || "—"} />
                               <Detail label="Пол" value={selectedPerson.gender || "—"} />
                               <Detail label="Наставник" value={selectedPerson.mentor_name || "—"} />
@@ -1041,7 +1043,7 @@ async function handleRestorePerson(person: Person) {
                               <div className="text-[15px] font-medium">{selectedPerson.next_step || "—"}</div>
                             </div>
 
-                            <div className="mt-4">
+                            <div className="mt-5">
                               <div className="mb-2 text-sm text-slate-500">Комментарий</div>
                               <div className="text-[15px] text-slate-800">{selectedPerson.comment || "—"}</div>
                             </div>
@@ -1257,7 +1259,7 @@ async function handleRestorePerson(person: Person) {
                   <p className="mt-1 text-slate-500">Роли и доступы системы</p>
                 </div>
 
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+               <div className="rounded-[28px] border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
                   <div className="text-sm text-slate-500">Текущая роль</div>
                   <div className="mt-2 text-xl font-semibold">{profile?.role || "—"}</div>
                   <div className="mt-1 text-slate-500">Наставник: {profile?.mentor_name || "—"}</div>
