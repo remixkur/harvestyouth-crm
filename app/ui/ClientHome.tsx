@@ -682,18 +682,18 @@ async function handleRestorePerson(person: Person) {
                 </div>
 
                 <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="grid grid-cols-6 gap-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Поиск по имени..."
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none ring-0 transition placeholder:text-slate-400 focus:border-slate-300"
+                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                     />
 
                     <select
                       value={mentorFilter}
                       onChange={(e) => setMentorFilter(e.target.value)}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                     >
                       <option value="all">Все наставники</option>
                       {mentorOptions.map((mentor) => (
@@ -706,7 +706,7 @@ async function handleRestorePerson(person: Person) {
                     <select
                       value={levelFilter}
                       onChange={(e) => setLevelFilter(e.target.value)}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
+                     className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                     >
                       <option value="all">Все уровни</option>
                       <option value="local">Местная</option>
@@ -730,7 +730,7 @@ async function handleRestorePerson(person: Person) {
                       <select
                         value={baptizedFilter}
                         onChange={(e) => setBaptizedFilter(e.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                       >
                         <option value="all">Крещение</option>
                         <option value="yes">Крещён</option>
@@ -740,7 +740,7 @@ async function handleRestorePerson(person: Person) {
                       <select
                         value={growthFilter}
                         onChange={(e) => setGrowthFilter(e.target.value)}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
+                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                       >
                         <select
   value={sortOrder}
@@ -811,7 +811,7 @@ async function handleRestorePerson(person: Person) {
                 )}
 
                 <div className="grid grid-cols-[minmax(0,1fr)_420px] gap-6">
-                  <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+                 <div className="hidden overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm xl:block">
                     <div className="grid grid-cols-[2.2fr_1.6fr_1.4fr_1.2fr_1fr] border-b border-slate-100 bg-slate-50/70 px-6 py-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
                       <div>Имя</div>
                       <div>Наставник</div>
@@ -819,6 +819,70 @@ async function handleRestorePerson(person: Person) {
                       <div>Встреча</div>
                       <div>Крещение</div>
                     </div>
+
+                    <div className="space-y-3 xl:hidden">
+  {activePeople.map((person) => (
+    <button
+      key={person.id}
+      onClick={() => {
+        setSelectedId(person.id);
+        setEditing(false);
+      }}
+      className={cx(
+        "w-full rounded-[24px] border border-slate-200 bg-white p-4 text-left shadow-sm transition",
+        selectedPerson?.id === person.id ? "ring-2 ring-indigo-500" : "hover:bg-slate-50"
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-[18px] font-semibold text-slate-900">
+            {person.full_name}
+          </div>
+          <div className="mt-1 text-sm text-slate-500">
+            {person.mentor_name || "—"}
+          </div>
+        </div>
+
+        <span
+          className={cx(
+            "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
+            levelBadge[person.level] || "bg-slate-100 text-slate-700"
+          )}
+        >
+          {levelLabels[person.level] || person.level}
+        </span>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between text-sm">
+        <div>
+          {person.last_meeting_date ? (
+            <span className="text-emerald-600">
+              {formatMeetingDate(person.last_meeting_date)}
+            </span>
+          ) : (
+            <span className="text-rose-500">нет встречи</span>
+          )}
+        </div>
+
+        <div>
+          {person.baptized ? (
+            <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">
+              Крещён
+            </span>
+          ) : (
+            <span className="text-slate-400">—</span>
+          )}
+        </div>
+      </div>
+    </button>
+  ))}
+
+  {activePeople.length === 0 && (
+    <div className="rounded-[24px] border border-slate-200 bg-white p-6 text-center text-slate-500 shadow-sm">
+      Ничего не найдено
+    </div>
+  )}
+</div>
 
                     <div className="divide-y divide-slate-100">
                       {activePeople.map((person) => (
