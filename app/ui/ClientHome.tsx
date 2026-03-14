@@ -724,7 +724,13 @@ async function handleRestorePerson(person: Person) {
                         onChange={(e) => setGrowthFilter(e.target.value)}
                         className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
                       >
-                        <select
+                      
+                        <option value="all">Путь роста</option>
+                        <option value="started">Есть уроки</option>
+                        <option value="completed">Закончили ПР</option>
+                        <option value="not_started">Не начинали</option>
+                      </select>
+                      <select
   value={sortOrder}
   onChange={(e) => setSortOrder(e.target.value)}
   className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
@@ -733,11 +739,6 @@ async function handleRestorePerson(person: Person) {
   <option value="level_asc">От местной к ядру</option>
   <option value="level_desc">От ядра к местной</option>
 </select>
-                        <option value="all">Путь роста</option>
-                        <option value="started">Есть уроки</option>
-                        <option value="completed">Закончили ПР</option>
-                        <option value="not_started">Не начинали</option>
-                      </select>
                     </div>
                   </div>
                 </div>
