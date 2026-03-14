@@ -570,8 +570,8 @@ async function handleRestorePerson(person: Person) {
           </div>
         </div>
 
-        <div className="grid grid-cols-[240px_minmax(0,1fr)] gap-6">
-          <aside className="rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+       <aside className="hidden rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm lg:block">
             <nav className="space-y-2">
               <SidebarButton active={activePage === "dashboard"} onClick={() => setActivePage("dashboard")}>
                 Обзор
@@ -590,7 +590,25 @@ async function handleRestorePerson(person: Person) {
               </SidebarButton>
             </nav>
           </aside>
-
+<div className="lg:hidden">
+  <div className="flex gap-2 overflow-x-auto rounded-[24px] border border-slate-200 bg-white p-2 shadow-sm">
+    <SidebarButton active={activePage === "dashboard"} onClick={() => setActivePage("dashboard")}>
+      Обзор
+    </SidebarButton>
+    <SidebarButton active={activePage === "people"} onClick={() => setActivePage("people")}>
+      Люди
+    </SidebarButton>
+    <SidebarButton active={activePage === "growth"} onClick={() => setActivePage("growth")}>
+      ПР
+    </SidebarButton>
+    <SidebarButton active={activePage === "archive"} onClick={() => setActivePage("archive")}>
+      Архив
+    </SidebarButton>
+    <SidebarButton active={activePage === "users"} onClick={() => setActivePage("users")}>
+      Профиль
+    </SidebarButton>
+  </div>
+</div>
           <section className="min-w-0">
             {activePage === "dashboard" && (
               <div className="space-y-6">
@@ -724,13 +742,7 @@ async function handleRestorePerson(person: Person) {
                         onChange={(e) => setGrowthFilter(e.target.value)}
                         className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
                       >
-                      
-                        <option value="all">Путь роста</option>
-                        <option value="started">Есть уроки</option>
-                        <option value="completed">Закончили ПР</option>
-                        <option value="not_started">Не начинали</option>
-                      </select>
-                      <select
+                        <select
   value={sortOrder}
   onChange={(e) => setSortOrder(e.target.value)}
   className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
@@ -739,6 +751,11 @@ async function handleRestorePerson(person: Person) {
   <option value="level_asc">От местной к ядру</option>
   <option value="level_desc">От ядра к местной</option>
 </select>
+                        <option value="all">Путь роста</option>
+                        <option value="started">Есть уроки</option>
+                        <option value="completed">Закончили ПР</option>
+                        <option value="not_started">Не начинали</option>
+                      </select>
                     </div>
                   </div>
                 </div>
