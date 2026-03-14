@@ -37,6 +37,14 @@ const levelLabels: Record<string, string> = {
   core: "Ядро",
 };
 
+const levelOrder: Record<string, number> = {
+  local: 1,
+  visiting: 2,
+  church: 3,
+  committed: 4,
+  core: 5,
+};
+
 const levelBadge: Record<string, string> = {
   local:
     "bg-slate-100 text-slate-700 border border-slate-200 shadow-sm",
@@ -107,6 +115,7 @@ export default function ClientHome({
   const [archiveFilter, setArchiveFilter] = useState("active");
   const [baptizedFilter, setBaptizedFilter] = useState("all");
   const [growthFilter, setGrowthFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("default");
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -140,7 +149,8 @@ const [customMeetingDate, setCustomMeetingDate] = useState("");
     comment: "",
   });
 
-  const activePeople = people.filter((p) => {
+ const activePeople = people
+  .filter((p) => {
     const byArchive =
       archiveFilter === "all"
         ? true
@@ -174,6 +184,17 @@ const [customMeetingDate, setCustomMeetingDate] = useState("");
     const bySearch = p.full_name.toLowerCase().includes(search.toLowerCase());
 
     return byArchive && byMentor && byLevel && byBaptized && byGrowth && bySearch;
+  })
+  .sort((a, b) => {
+    if (sortOrder === "level_asc") {
+      return (levelOrder[a.level] || 999) - (levelOrder[b.level] || 999);
+    }
+
+    if (sortOrder === "level_desc") {
+      return (levelOrder[b.level] || 999) - (levelOrder[a.level] || 999);
+    }
+
+    return 0;
   });
 
   const archivedPeople = people.filter((p) => p.archived);
@@ -190,6 +211,14 @@ const [customMeetingDate, setCustomMeetingDate] = useState("");
     mentors: new Set(people.map((p) => p.mentor_name).filter(Boolean)).size,
     baptized: people.filter((p) => p.baptized && !p.archived).length,
   };
+
+  const levelStats = {
+  local: people.filter((p) => !p.archived && p.level === "local").length,
+  visiting: people.filter((p) => !p.archived && p.level === "visiting").length,
+  church: people.filter((p) => !p.archived && p.level === "church").length,
+  committed: people.filter((p) => !p.archived && p.level === "committed").length,
+  core: people.filter((p) => !p.archived && p.level === "core").length,
+};
 
   const readyForBaptism = people.filter((p) => !p.archived && p.full_course && !p.baptized);
   const completedGrowth = people.filter((p) => !p.archived && p.full_course);
@@ -577,6 +606,18 @@ async function handleRestorePerson(person: Person) {
                   <StatCard title="Крещены" value={stats.baptized} />
                 </div>
 
+                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+  <h2 className="mb-4 text-xl font-semibold">По уровням посвящения</h2>
+
+  <div className="grid grid-cols-5 gap-4">
+    <LevelStatCard title="Местная" value={levelStats.local} badgeClass={levelBadge.local} />
+    <LevelStatCard title="Посещающая" value={levelStats.visiting} badgeClass={levelBadge.visiting} />
+    <LevelStatCard title="Церковная" value={levelStats.church} badgeClass={levelBadge.church} />
+    <LevelStatCard title="Посвящённая" value={levelStats.committed} badgeClass={levelBadge.committed} />
+    <LevelStatCard title="Ядро" value={levelStats.core} badgeClass={levelBadge.core} />
+  </div>
+</div>
+
                 <div className="grid grid-cols-2 gap-6">
                   <DashboardList
                     title="Готовы к крещению"
@@ -623,7 +664,7 @@ async function handleRestorePerson(person: Person) {
                 </div>
 
                 <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-6 gap-3">
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
@@ -683,6 +724,15 @@ async function handleRestorePerson(person: Person) {
                         onChange={(e) => setGrowthFilter(e.target.value)}
                         className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
                       >
+                        <select
+  value={sortOrder}
+  onChange={(e) => setSortOrder(e.target.value)}
+  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
+>
+  <option value="default">Без сортировки</option>
+  <option value="level_asc">От местной к ядру</option>
+  <option value="level_desc">От ядра к местной</option>
+</select>
                         <option value="all">Путь роста</option>
                         <option value="started">Есть уроки</option>
                         <option value="completed">Закончили ПР</option>
@@ -1166,6 +1216,25 @@ function StatCard({ title, value }: { title: string; value: number }) {
     <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
       <div className="text-sm text-slate-500">{title}</div>
       <div className="mt-2 text-3xl font-bold">{value}</div>
+    </div>
+  );
+}
+
+function LevelStatCard({
+  title,
+  value,
+  badgeClass,
+}: {
+  title: string;
+  value: number;
+  badgeClass: string;
+}) {
+  return (
+    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+      <div className={cx("inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide", badgeClass)}>
+        {title}
+      </div>
+      <div className="mt-3 text-2xl font-bold text-slate-900">{value}</div>
     </div>
   );
 }
