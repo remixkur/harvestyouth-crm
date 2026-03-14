@@ -41,12 +41,9 @@ export default function GrowthSection({
   quickToggleLesson,
   quickToggleBaptized,
 }: {
-  people: Person[];
-  quickToggleLesson: (
-    person: Person,
-    lesson: "lesson_1" | "lesson_2" | "lesson_3" | "lesson_4"
-  ) => void;
-  quickToggleBaptized: (person: Person) => void;
+  people: any[];
+  quickToggleLesson: any;
+  quickToggleBaptized: any;
 }) {
   const activeGrowthPeople = people.filter((p) => !p.archived && !p.full_course);
   const completedGrowthPeople = people.filter((p) => !p.archived && p.full_course);
