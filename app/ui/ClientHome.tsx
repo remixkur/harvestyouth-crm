@@ -605,59 +605,101 @@ export default function ClientHome({
               </div>
             </div>
 
-            {activePage === "dashboard" && (
-              <div className="space-y-6">
-                <div>
-                  <h1 className="text-3xl font-bold tracking-tight sm:text-[40px]">Обзор</h1>
-                  <p className="mt-1 text-slate-500">Кого нельзя упустить прямо сейчас</p>
-                </div>
+       {activePage === "dashboard" && (
+  <div className="space-y-6">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-[40px]">
+          Добро пожаловать, {profile?.mentor_name || session?.user?.email || "Пользователь"}
+        </h1>
+        <p className="mt-2 text-lg text-slate-500">Обзор ваших подопечных</p>
+      </div>
 
-                <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-                  <StatCard title="Всего людей" value={stats.total} />
-                  <StatCard title="На пути роста" value={stats.growth} />
-                  <StatCard title="Наставников" value={stats.mentors} />
-                  <StatCard title="Крещены" value={stats.baptized} />
-                </div>
+      <button
+        onClick={() => {
+          setActivePage("people");
+          setShowAddForm(true);
+        }}
+        className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+      >
+        + Добавить человека
+      </button>
+    </div>
 
-                <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                  <h2 className="mb-4 text-xl font-semibold">По уровням посвящения</h2>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-                    <LevelStatCard title="Местная" value={levelStats.local} badgeClass={levelBadge.local} />
-                    <LevelStatCard title="Посещающая" value={levelStats.visiting} badgeClass={levelBadge.visiting} />
-                    <LevelStatCard title="Церковная" value={levelStats.church} badgeClass={levelBadge.church} />
-                    <LevelStatCard title="Посвящённая" value={levelStats.committed} badgeClass={levelBadge.committed} />
-                    <LevelStatCard title="Ядро" value={levelStats.core} badgeClass={levelBadge.core} />
-                  </div>
-                </div>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <OverviewStatCard
+        icon="👥"
+        title="Всего подопечных"
+        value={stats.total}
+        iconBg="bg-violet-100"
+      />
+      <OverviewStatCard
+        icon="💚"
+        title="Новичков"
+        value={newPeople.length}
+        iconBg="bg-emerald-100"
+      />
+      <OverviewStatCard
+        icon="⭐"
+        title="Служителей"
+        value={people.filter((p) => !p.archived && (p.level === "committed" || p.level === "core")).length}
+        iconBg="bg-violet-100"
+      />
+      <OverviewStatCard
+        icon="📈"
+        title="За последний месяц"
+        value={
+          people.filter((p) => {
+            if (p.archived || !p.last_meeting_date) return false;
+            const date = new Date(p.last_meeting_date);
+            if (isNaN(date.getTime())) return false;
+            const now = new Date();
+            const diff = now.getTime() - date.getTime();
+            return diff <= 30 * 24 * 60 * 60 * 1000;
+          }).length
+        }
+        iconBg="bg-amber-100"
+      />
+    </div>
 
-                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                  <DashboardList
-                    title="Готовы к крещению"
-                    items={readyForBaptism}
-                    emptyText="Пока никого нет"
-                    subtitle={(p) => `Наставник: ${p.mentor_name || "—"}`}
-                  />
-                  <DashboardList
-                    title="Давно без встречи"
-                    items={noMeetingLong}
-                    emptyText="Все в порядке"
-                    subtitle={(p) => `Последняя встреча: ${p.last_meeting_date || "не указана"}`}
-                  />
-                  <DashboardList
-                    title="Новые люди"
-                    items={newPeople}
-                    emptyText="Новых людей нет"
-                    subtitle={(p) => `Уровень: ${levelLabels[p.level] || p.level}`}
-                  />
-                  <DashboardList
-                    title="Закончили ПР"
-                    items={completedGrowth}
-                    emptyText="Пока никого нет"
-                    subtitle={(p) => `Наставник: ${p.mentor_name || "—"}`}
-                  />
-                </div>
-              </div>
-            )}
+    <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-2xl font-semibold tracking-tight">По уровням посвящения</h2>
+
+      <div className="mt-6 space-y-5">
+        <LevelBar
+          label="Местная"
+          value={levelStats.local}
+          total={Math.max(stats.total, 1)}
+          badgeClass={levelBadge.local}
+        />
+        <LevelBar
+          label="Посещающая"
+          value={levelStats.visiting}
+          total={Math.max(stats.total, 1)}
+          badgeClass={levelBadge.visiting}
+        />
+        <LevelBar
+          label="Церковная"
+          value={levelStats.church}
+          total={Math.max(stats.total, 1)}
+          badgeClass={levelBadge.church}
+        />
+        <LevelBar
+          label="Посвящённая"
+          value={levelStats.committed}
+          total={Math.max(stats.total, 1)}
+          badgeClass={levelBadge.committed}
+        />
+        <LevelBar
+          label="Ядро"
+          value={levelStats.core}
+          total={Math.max(stats.total, 1)}
+          badgeClass={levelBadge.core}
+        />
+      </div>
+    </div>
+  </div>
+)}
 
             {activePage === "people" && (
               <div className="space-y-5">
@@ -1409,5 +1451,67 @@ function SelectField({
         </option>
       ))}
     </select>
+  );
+}
+
+function OverviewStatCard({
+  icon,
+  title,
+  value,
+  iconBg,
+}: {
+  icon: string;
+  title: string;
+  value: number;
+  iconBg: string;
+}) {
+  return (
+    <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex items-center gap-4">
+        <div className={`flex h-14 w-14 items-center justify-center rounded-2xl text-2xl ${iconBg}`}>
+          {icon}
+        </div>
+
+        <div>
+          <div className="text-4xl font-bold leading-none">{value}</div>
+          <div className="mt-2 text-lg text-slate-500">{title}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LevelBar({
+  label,
+  value,
+  total,
+  badgeClass,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  badgeClass: string;
+}) {
+  const percent = Math.max(0, Math.min(100, (value / total) * 100));
+
+  return (
+    <div className="grid grid-cols-[140px_minmax(0,1fr)_40px] items-center gap-4">
+      <div>
+        <span
+          className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold tracking-wide ${badgeClass}`}
+        >
+          {label}
+        </span>
+      </div>
+
+      <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-slate-300"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+
+      <div className="text-right text-2xl text-slate-500">{value}</div>
+    </div>
   );
 }
