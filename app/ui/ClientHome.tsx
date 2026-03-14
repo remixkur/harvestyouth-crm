@@ -627,40 +627,52 @@ export default function ClientHome({
     </div>
 
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <OverviewStatCard
-        icon="👥"
-        title="Всего подопечных"
-        value={stats.total}
-        iconBg="bg-violet-100"
-      />
-      <OverviewStatCard
-        icon="💚"
-        title="Новичков"
-        value={newPeople.length}
-        iconBg="bg-emerald-100"
-      />
-      <OverviewStatCard
-        icon="⭐"
-        title="Служителей"
-        value={people.filter((p) => !p.archived && (p.level === "committed" || p.level === "core")).length}
-        iconBg="bg-violet-100"
-      />
-      <OverviewStatCard
-        icon="📈"
-        title="За последний месяц"
-        value={
-          people.filter((p) => {
-            if (p.archived || !p.last_meeting_date) return false;
-            const date = new Date(p.last_meeting_date);
-            if (isNaN(date.getTime())) return false;
-            const now = new Date();
-            const diff = now.getTime() - date.getTime();
-            return diff <= 30 * 24 * 60 * 60 * 1000;
-          }).length
-        }
-        iconBg="bg-amber-100"
-      />
-    </div>
+  <OverviewStatCard
+    icon="👥"
+    title="Всего людей"
+    value={people.filter((p) => !p.archived).length}
+    iconBg="bg-violet-100"
+  />
+
+  <OverviewStatCard
+    icon="🆕"
+    title="Новые за 30 дней"
+    value={people.filter((p) => {
+      if (p.archived || !p.last_meeting_date) return false;
+
+      const date = new Date(p.last_meeting_date);
+      if (isNaN(date.getTime())) return false;
+
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const days = diff / (1000 * 60 * 60 * 24);
+
+      return days <= 30;
+    }).length}
+    iconBg="bg-emerald-100"
+  />
+
+  <OverviewStatCard
+    icon="⭐"
+    title="Служителей"
+    value={people.filter((p) => {
+      if (p.archived || !p.service_team) return false;
+
+      const value = p.service_team.trim();
+
+      return value.length >= 3 && value !== "-";
+    }).length}
+    iconBg="bg-amber-100"
+  />
+
+  <OverviewStatCard
+    icon="✅"
+    title="Прошли путь роста"
+    value={people.filter((p) => !p.archived && p.full_course).length}
+    iconBg="bg-cyan-100"
+  />
+</div>
+
 
     <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
       <h2 className="text-2xl font-semibold tracking-tight">По уровням посвящения</h2>
