@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import GrowthSection from "./GrowthSection";
-import { supabase } from "../../lib/supabase";
+import BaptismSection from "./BaptismSection";
 import MobilePersonScreen from "./MobilePersonScreen";
+import { supabase } from "../../lib/supabase";
 
 type Person = {
   id: number;
@@ -28,6 +29,9 @@ type Person = {
   lesson_3: boolean;
   lesson_4: boolean;
   full_course: boolean;
+  baptism_lesson_1: boolean;
+  baptism_lesson_2: boolean;
+  baptism_ready: boolean;
 };
 
 const levelLabels: Record<string, string> = {
@@ -60,6 +64,7 @@ function cx(...classes: Array<string | false | null | undefined>) {
 
 function formatMeetingDate(dateString: string | null) {
   if (!dateString) return "—";
+
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
 
@@ -116,7 +121,6 @@ export default function ClientHome({
   const [showMeetingPicker, setShowMeetingPicker] = useState(false);
   const [customMeetingDate, setCustomMeetingDate] = useState("");
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
-
 
   const [form, setForm] = useState({
     full_name: "",
@@ -182,9 +186,11 @@ export default function ClientHome({
       if (sortOrder === "level_asc") {
         return (levelOrder[a.level] || 999) - (levelOrder[b.level] || 999);
       }
+
       if (sortOrder === "level_desc") {
         return (levelOrder[b.level] || 999) - (levelOrder[a.level] || 999);
       }
+
       return 0;
     });
 
@@ -210,11 +216,6 @@ export default function ClientHome({
     committed: people.filter((p) => !p.archived && p.level === "committed").length,
     core: people.filter((p) => !p.archived && p.level === "core").length,
   };
-
-  const readyForBaptism = people.filter((p) => !p.archived && p.full_course && !p.baptized);
-  const completedGrowth = people.filter((p) => !p.archived && p.full_course);
-  const newPeople = people.filter((p) => !p.archived && (p.level === "local" || p.level === "visiting"));
-  const noMeetingLong = people.filter((p) => !p.archived && !p.last_meeting_date);
 
   const mentorOptions = Array.from(
     new Set(people.map((p) => p.mentor_name).filter(Boolean))
@@ -340,6 +341,43 @@ export default function ClientHome({
     }
   }
 
+  async function quickToggleBaptismLesson(
+    person: Person,
+    lesson: "baptism_lesson_1" | "baptism_lesson_2"
+  ) {
+    const updated = {
+      baptism_lesson_1:
+        lesson === "baptism_lesson_1"
+          ? !person.baptism_lesson_1
+          : person.baptism_lesson_1,
+      baptism_lesson_2:
+        lesson === "baptism_lesson_2"
+          ? !person.baptism_lesson_2
+          : person.baptism_lesson_2,
+    };
+
+    const baptism_ready = updated.baptism_lesson_1 && updated.baptism_lesson_2;
+
+    const { data, error } = await supabase
+      .from("people")
+      .update({
+        ...updated,
+        baptism_ready,
+      })
+      .eq("id", person.id)
+      .select()
+      .single();
+
+    if (error) {
+      alert("Ошибка обновления подготовки к крещению: " + error.message);
+      return;
+    }
+
+    if (data) {
+      setPeople((prev) => prev.map((p) => (p.id === data.id ? data : p)));
+    }
+  }
+
   async function quickToggleBaptized(person: Person) {
     const { data, error } = await supabase
       .from("people")
@@ -416,6 +454,7 @@ export default function ClientHome({
       alert("Выбери дату");
       return;
     }
+
     await saveMeetingDate(customMeetingDate);
   }
 
@@ -503,6 +542,9 @@ export default function ClientHome({
           lesson_3: false,
           lesson_4: false,
           full_course: false,
+          baptism_lesson_1: false,
+          baptism_lesson_2: false,
+          baptism_ready: false,
         },
       ])
       .select()
@@ -575,12 +617,17 @@ export default function ClientHome({
               <SidebarButton active={activePage === "growth"} onClick={() => setActivePage("growth")}>
                 Путь роста
               </SidebarButton>
+              <SidebarButton active={activePage === "baptism"} onClick={() => setActivePage("baptism")}>
+                Крещение
+              </SidebarButton>
               <SidebarButton active={activePage === "archive"} onClick={() => setActivePage("archive")}>
                 Архив
               </SidebarButton>
-              <SidebarButton active={activePage === "users"} onClick={() => setActivePage("users")}>
-                Пользователи
-              </SidebarButton>
+              {profile?.role === "admin" && (
+                <SidebarButton active={activePage === "users"} onClick={() => setActivePage("users")}>
+                  Пользователи
+                </SidebarButton>
+              )}
             </nav>
           </aside>
 
@@ -596,122 +643,124 @@ export default function ClientHome({
                 <SidebarButton active={activePage === "growth"} onClick={() => setActivePage("growth")}>
                   ПР
                 </SidebarButton>
+                <SidebarButton active={activePage === "baptism"} onClick={() => setActivePage("baptism")}>
+                  Крещение
+                </SidebarButton>
                 <SidebarButton active={activePage === "archive"} onClick={() => setActivePage("archive")}>
                   Архив
                 </SidebarButton>
-                <SidebarButton active={activePage === "users"} onClick={() => setActivePage("users")}>
-                  Профиль
-                </SidebarButton>
+                {profile?.role === "admin" && (
+                  <SidebarButton active={activePage === "users"} onClick={() => setActivePage("users")}>
+                    Пользователи
+                  </SidebarButton>
+                )}
               </div>
             </div>
 
-       {activePage === "dashboard" && (
-  <div className="space-y-6">
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-[40px]">
-          Добро пожаловать, {profile?.mentor_name || session?.user?.email || "Пользователь"}
-        </h1>
-        <p className="mt-2 text-lg text-slate-500">Обзор ваших подопечных</p>
-      </div>
+            {activePage === "dashboard" && (
+              <div className="space-y-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold tracking-tight sm:text-[40px]">
+                      Добро пожаловать, {profile?.mentor_name || session?.user?.email || "Пользователь"}
+                    </h1>
+                    <p className="mt-2 text-lg text-slate-500">Обзор ваших подопечных</p>
+                  </div>
 
-      <button
-        onClick={() => {
-          setActivePage("people");
-          setShowAddForm(true);
-        }}
-        className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
-      >
-        + Добавить человека
-      </button>
-    </div>
+                  <button
+                    onClick={() => {
+                      setActivePage("people");
+                      setShowAddForm(true);
+                    }}
+                    className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+                  >
+                    + Добавить человека
+                  </button>
+                </div>
 
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-  <OverviewStatCard
-    icon="👥"
-    title="Всего людей"
-    value={people.filter((p) => !p.archived).length}
-    iconBg="bg-violet-100"
-  />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <OverviewStatCard
+                    icon="👥"
+                    title="Всего людей"
+                    value={people.filter((p) => !p.archived).length}
+                    iconBg="bg-violet-100"
+                  />
 
-  <OverviewStatCard
-    icon="🆕"
-    title="Новые за 30 дней"
-    value={people.filter((p) => {
-      if (p.archived || !p.last_meeting_date) return false;
+                  <OverviewStatCard
+                    icon="🆕"
+                    title="Новые за 30 дней"
+                    value={people.filter((p) => {
+                      if (p.archived || !p.last_meeting_date) return false;
 
-      const date = new Date(p.last_meeting_date);
-      if (isNaN(date.getTime())) return false;
+                      const date = new Date(p.last_meeting_date);
+                      if (isNaN(date.getTime())) return false;
 
-      const now = new Date();
-      const diff = now.getTime() - date.getTime();
-      const days = diff / (1000 * 60 * 60 * 24);
+                      const now = new Date();
+                      const diff = now.getTime() - date.getTime();
+                      const days = diff / (1000 * 60 * 60 * 24);
 
-      return days <= 30;
-    }).length}
-    iconBg="bg-emerald-100"
-  />
+                      return days <= 30;
+                    }).length}
+                    iconBg="bg-emerald-100"
+                  />
 
-  <OverviewStatCard
-    icon="⭐"
-    title="Служителей"
-    value={people.filter((p) => {
-      if (p.archived || !p.service_team) return false;
+                  <OverviewStatCard
+                    icon="⭐"
+                    title="Служителей"
+                    value={people.filter((p) => {
+                      if (p.archived || !p.service_team) return false;
+                      const value = p.service_team.trim();
+                      return value.length >= 3 && value !== "-";
+                    }).length}
+                    iconBg="bg-amber-100"
+                  />
 
-      const value = p.service_team.trim();
+                  <OverviewStatCard
+                    icon="✅"
+                    title="Прошли путь роста"
+                    value={people.filter((p) => !p.archived && p.full_course).length}
+                    iconBg="bg-cyan-100"
+                  />
+                </div>
 
-      return value.length >= 3 && value !== "-";
-    }).length}
-    iconBg="bg-amber-100"
-  />
+                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-2xl font-semibold tracking-tight">По уровням посвящения</h2>
 
-  <OverviewStatCard
-    icon="✅"
-    title="Прошли путь роста"
-    value={people.filter((p) => !p.archived && p.full_course).length}
-    iconBg="bg-cyan-100"
-  />
-</div>
-
-
-    <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-2xl font-semibold tracking-tight">По уровням посвящения</h2>
-
-      <div className="mt-6 space-y-5">
-        <LevelBar
-          label="Местная"
-          value={levelStats.local}
-          total={Math.max(stats.total, 1)}
-          badgeClass={levelBadge.local}
-        />
-        <LevelBar
-          label="Посещающая"
-          value={levelStats.visiting}
-          total={Math.max(stats.total, 1)}
-          badgeClass={levelBadge.visiting}
-        />
-        <LevelBar
-          label="Церковная"
-          value={levelStats.church}
-          total={Math.max(stats.total, 1)}
-          badgeClass={levelBadge.church}
-        />
-        <LevelBar
-          label="Посвящённая"
-          value={levelStats.committed}
-          total={Math.max(stats.total, 1)}
-          badgeClass={levelBadge.committed}
-        />
-        <LevelBar
-          label="Ядро"
-          value={levelStats.core}
-          total={Math.max(stats.total, 1)}
-          badgeClass={levelBadge.core}
-        />
-      </div>
-    </div>
-  </div>
-)}
+                  <div className="mt-6 space-y-5">
+                    <LevelBar
+                      label="Местная"
+                      value={levelStats.local}
+                      total={Math.max(stats.total, 1)}
+                      badgeClass={levelBadge.local}
+                    />
+                    <LevelBar
+                      label="Посещающая"
+                      value={levelStats.visiting}
+                      total={Math.max(stats.total, 1)}
+                      badgeClass={levelBadge.visiting}
+                    />
+                    <LevelBar
+                      label="Церковная"
+                      value={levelStats.church}
+                      total={Math.max(stats.total, 1)}
+                      badgeClass={levelBadge.church}
+                    />
+                    <LevelBar
+                      label="Посвящённая"
+                      value={levelStats.committed}
+                      total={Math.max(stats.total, 1)}
+                      badgeClass={levelBadge.committed}
+                    />
+                    <LevelBar
+                      label="Ядро"
+                      value={levelStats.core}
+                      total={Math.max(stats.total, 1)}
+                      badgeClass={levelBadge.core}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {activePage === "people" && (
               <div className="space-y-5">
@@ -871,11 +920,10 @@ export default function ClientHome({
                       {activePeople.map((person) => (
                         <button
                           key={person.id}
-                         onClick={() => {
-  setSelectedId(person.id);
-  setEditing(false);
-  setMobileDetailOpen(true);
-}}
+                          onClick={() => {
+                            setSelectedId(person.id);
+                            setEditing(false);
+                          }}
                           className={cx(
                             "grid w-full grid-cols-[2.2fr_1.6fr_1.4fr_1.2fr_1fr] items-center px-6 py-5 text-left transition",
                             selectedPerson?.id === person.id
@@ -940,10 +988,10 @@ export default function ClientHome({
                       <button
                         key={person.id}
                         onClick={() => {
-  setSelectedId(person.id);
-  setEditing(false);
-  setMobileDetailOpen(true);
-}}
+                          setSelectedId(person.id);
+                          setEditing(false);
+                          setMobileDetailOpen(true);
+                        }}
                         className={cx(
                           "w-full rounded-[24px] border border-slate-200 bg-white p-4 text-left shadow-sm transition",
                           selectedPerson?.id === person.id ? "ring-2 ring-indigo-500" : "hover:bg-slate-50"
@@ -999,34 +1047,34 @@ export default function ClientHome({
                   </div>
 
                   <MobilePersonScreen
-  selectedPerson={selectedPerson}
-  mobileDetailOpen={mobileDetailOpen}
-  setMobileDetailOpen={setMobileDetailOpen}
-  editing={editing}
-  setEditing={setEditing}
-  editForm={editForm}
-  setEditForm={setEditForm}
-  saving={saving}
-  handleSaveEdit={handleSaveEdit}
-  levelBadge={levelBadge}
-  levelLabels={levelLabels}
-  formatMeetingDate={formatMeetingDate}
-  getDaysAgo={getDaysAgo}
-  showMeetingPicker={showMeetingPicker}
-  setShowMeetingPicker={setShowMeetingPicker}
-  handleMeetingToday={handleMeetingToday}
-  handleMeetingYesterday={handleMeetingYesterday}
-  customMeetingDate={customMeetingDate}
-  setCustomMeetingDate={setCustomMeetingDate}
-  handleCustomMeetingDate={handleCustomMeetingDate}
-  startEdit={startEdit}
-  handleArchivePerson={handleArchivePerson}
-  handleToggleBaptized={handleToggleBaptized}
-  toggleLesson={toggleLesson}
-/>
+                    selectedPerson={selectedPerson}
+                    mobileDetailOpen={mobileDetailOpen}
+                    setMobileDetailOpen={setMobileDetailOpen}
+                    editing={editing}
+                    setEditing={setEditing}
+                    editForm={editForm}
+                    setEditForm={setEditForm}
+                    saving={saving}
+                    handleSaveEdit={handleSaveEdit}
+                    levelBadge={levelBadge}
+                    levelLabels={levelLabels}
+                    formatMeetingDate={formatMeetingDate}
+                    getDaysAgo={getDaysAgo}
+                    showMeetingPicker={showMeetingPicker}
+                    setShowMeetingPicker={setShowMeetingPicker}
+                    handleMeetingToday={handleMeetingToday}
+                    handleMeetingYesterday={handleMeetingYesterday}
+                    customMeetingDate={customMeetingDate}
+                    setCustomMeetingDate={setCustomMeetingDate}
+                    handleCustomMeetingDate={handleCustomMeetingDate}
+                    startEdit={startEdit}
+                    handleArchivePerson={handleArchivePerson}
+                    handleToggleBaptized={handleToggleBaptized}
+                    toggleLesson={toggleLesson}
+                  />
 
                   {selectedPerson ? (
-  <div className="hidden w-full rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6 xl:block">
+                    <div className="hidden w-full rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:sticky xl:top-6 xl:block">
                       <div className="mb-5">
                         <div className="text-[24px] font-bold leading-tight sm:text-[32px]">
                           {selectedPerson.full_name}
@@ -1225,7 +1273,6 @@ export default function ClientHome({
                         </>
                       )}
                     </div>
-                    
                   ) : (
                     <div className="flex h-full items-center justify-center rounded-[28px] border border-slate-200 bg-white p-8 text-slate-400 shadow-sm">
                       Выбери человека слева
@@ -1239,6 +1286,14 @@ export default function ClientHome({
               <GrowthSection
                 people={people}
                 quickToggleLesson={quickToggleLesson}
+                quickToggleBaptized={quickToggleBaptized}
+              />
+            )}
+
+            {activePage === "baptism" && (
+              <BaptismSection
+                people={people}
+                quickToggleBaptismLesson={quickToggleBaptismLesson}
                 quickToggleBaptized={quickToggleBaptized}
               />
             )}
@@ -1286,7 +1341,7 @@ export default function ClientHome({
               </div>
             )}
 
-            {activePage === "users" && (
+            {profile?.role === "admin" && activePage === "users" && (
               <div className="space-y-5">
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight sm:text-[40px]">Пользователи</h1>
@@ -1326,64 +1381,6 @@ function SidebarButton({
     >
       {children}
     </button>
-  );
-}
-
-function StatCard({ title, value }: { title: string; value: number }) {
-  return (
-    <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="text-sm text-slate-500">{title}</div>
-      <div className="mt-2 text-3xl font-bold">{value}</div>
-    </div>
-  );
-}
-
-function LevelStatCard({
-  title,
-  value,
-  badgeClass,
-}: {
-  title: string;
-  value: number;
-  badgeClass: string;
-}) {
-  return (
-    <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-      <div className={cx("inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide", badgeClass)}>
-        {title}
-      </div>
-      <div className="mt-3 text-2xl font-bold text-slate-900">{value}</div>
-    </div>
-  );
-}
-
-function DashboardList({
-  title,
-  items,
-  emptyText,
-  subtitle,
-}: {
-  title: string;
-  items: Person[];
-  emptyText: string;
-  subtitle: (person: Person) => string;
-}) {
-  return (
-    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="mb-4 text-xl font-semibold">{title}</h2>
-      <div className="space-y-2">
-        {items.length === 0 ? (
-          <div className="text-sm text-slate-500">{emptyText}</div>
-        ) : (
-          items.map((person) => (
-            <div key={person.id} className="rounded-2xl bg-slate-50 px-4 py-3">
-              <div className="font-medium">{person.full_name}</div>
-              <div className="text-sm text-slate-500">{subtitle(person)}</div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
   );
 }
 
@@ -1507,7 +1504,7 @@ function LevelBar({
   const percent = Math.max(0, Math.min(100, (value / total) * 100));
 
   return (
-    <div className="grid grid-cols-[140px_minmax(0,1fr)_40px] items-center gap-4">
+    <div className="grid grid-cols-[110px_minmax(0,1fr)_40px] gap-3 sm:grid-cols-[140px_minmax(0,1fr)_40px] sm:gap-4 items-center">
       <div>
         <span
           className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold tracking-wide ${badgeClass}`}
