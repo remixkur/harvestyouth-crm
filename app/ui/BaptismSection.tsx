@@ -58,8 +58,12 @@ export default function BaptismSection({
   ) => Promise<void>;
   quickToggleBaptized: (person: any) => Promise<void>;
 }) {
-  const activePeople = people.filter((p) => !p.archived && !p.baptized);
-  const completedPeople = people.filter((p) => !p.archived && p.baptized);
+  const activePeople = people.filter(
+  (p) => !p.archived && !p.baptized && p.baptism_enrolled
+);
+const completedPeople = people.filter(
+  (p) => !p.archived && p.baptized && p.baptism_enrolled
+);
 
   return (
     <div className="space-y-5">
