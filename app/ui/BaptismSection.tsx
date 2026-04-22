@@ -2,17 +2,6 @@
 
 import React from "react";
 
-type Person = {
-  id: number;
-  full_name: string;
-  mentor_name: string | null;
-  baptized: boolean;
-  archived: boolean;
-  baptism_lesson_1: boolean;
-  baptism_lesson_2: boolean;
-  baptism_ready: boolean;
-};
-
 function Cell({
   active,
   onClick,
@@ -62,12 +51,12 @@ export default function BaptismSection({
   quickToggleBaptismLesson,
   quickToggleBaptized,
 }: {
-  people: Person[];
+  people: any[];
   quickToggleBaptismLesson: (
-    person: Person,
+    person: any,
     lesson: "baptism_lesson_1" | "baptism_lesson_2"
-  ) => void;
-  quickToggleBaptized: (person: Person) => void;
+  ) => Promise<void>;
+  quickToggleBaptized: (person: any) => Promise<void>;
 }) {
   const activePeople = people.filter((p) => !p.archived && !p.baptized);
   const completedPeople = people.filter((p) => !p.archived && p.baptized);
