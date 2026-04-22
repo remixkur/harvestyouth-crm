@@ -22,6 +22,7 @@ type Person = {
   next_step: string | null;
   comment: string | null;
   archived: boolean;
+  baptism_enrolled: boolean;
   archive_reason: string | null;
   path_growth?: number;
   lesson_1: boolean;
@@ -378,6 +379,35 @@ export default function ClientHome({
     }
   }
 
+  async function toggleBaptismEnrolled(person: Person) {
+  const newValue = !person.baptism_enrolled;
+
+  const updatePayload = newValue
+    ? { baptism_enrolled: true }
+    : {
+        baptism_enrolled: false,
+        baptism_lesson_1: false,
+        baptism_lesson_2: false,
+        baptism_ready: false,
+      };
+
+  const { data, error } = await supabase
+    .from("people")
+    .update(updatePayload)
+    .eq("id", person.id)
+    .select()
+    .single();
+
+  if (error) {
+    alert("Ошибка обновления подготовки к крещению: " + error.message);
+    return;
+  }
+
+  if (data) {
+    setPeople((prev) => prev.map((p) => (p.id === data.id ? data : p)));
+  }
+}
+
   async function quickToggleBaptized(person: Person) {
     const { data, error } = await supabase
       .from("people")
@@ -395,7 +425,7 @@ export default function ClientHome({
       setPeople((prev) => prev.map((p) => (p.id === data.id ? data : p)));
     }
   }
-
+  
   async function handleToggleBaptized() {
     if (!selectedPerson) return;
 
@@ -545,6 +575,7 @@ export default function ClientHome({
           baptism_lesson_1: false,
           baptism_lesson_2: false,
           baptism_ready: false,
+          baptism_enrolled: false,
         },
       ])
       .select()
@@ -1226,6 +1257,15 @@ export default function ClientHome({
                             >
                               Редактировать
                             </button>
+
+                            <button
+  onClick={() => toggleBaptismEnrolled(selectedPerson)}
+  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium hover:bg-slate-50"
+>
+  {selectedPerson.baptism_enrolled
+    ? "Убрать из подготовки к крещению"
+    : "Добавить в подготовку к крещению"}
+</button>
 
                             <button
                               onClick={handleArchivePerson}
