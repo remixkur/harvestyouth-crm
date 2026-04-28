@@ -109,7 +109,15 @@ export default function ClientHome({
   session: any;
 }) {
   const [people, setPeople] = useState<Person[]>(initialPeople);
-  const [activePage, setActivePage] = useState("people");
+ const [activePage, setActivePageState] = useState(() => {
+  if (typeof window === "undefined") return "people";
+  return localStorage.getItem("hy_active_page") || "people";
+});
+
+function setActivePage(page: string) {
+  setActivePageState(page);
+  localStorage.setItem("hy_active_page", page);
+}
   const [selectedId, setSelectedId] = useState<number>(initialPeople[0]?.id || 0);
   const [search, setSearch] = useState("");
   const [mentorFilter, setMentorFilter] = useState("all");

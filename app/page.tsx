@@ -98,7 +98,6 @@ export default function Home() {
         return;
       }
 
-      setPeople(null);
       setPeopleError(null);
 
       try {
