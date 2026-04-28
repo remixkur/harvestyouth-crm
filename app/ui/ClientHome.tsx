@@ -36,6 +36,7 @@ type Person = {
 };
 
 const levelLabels: Record<string, string> = {
+  passerby: "Проходной",
   local: "Местная",
   visiting: "Посещающая",
   church: "Церковная",
@@ -44,6 +45,7 @@ const levelLabels: Record<string, string> = {
 };
 
 const levelOrder: Record<string, number> = {
+  passerby: 0,
   local: 1,
   visiting: 2,
   church: 3,
@@ -52,6 +54,7 @@ const levelOrder: Record<string, number> = {
 };
 
 const levelBadge: Record<string, string> = {
+  passerby: "bg-zinc-100 text-zinc-600 border border-zinc-200 shadow-sm",
   local: "bg-slate-100 text-slate-700 border border-slate-200 shadow-sm",
   visiting: "bg-emerald-100/70 text-emerald-700 border border-emerald-200 shadow-sm",
   church: "bg-blue-100/70 text-blue-700 border border-blue-200 shadow-sm",
@@ -204,7 +207,7 @@ export default function ClientHome({
     null;
 
   const stats = {
-    total: people.filter((p) => !p.archived).length,
+   total: people.filter((p) => !p.archived && p.level !== "passerby").length,
     growth: people.filter((p) => !p.archived && (p.lesson_1 || p.lesson_2 || p.lesson_3 || p.lesson_4)).length,
     mentors: new Set(people.map((p) => p.mentor_name).filter(Boolean)).size,
     baptized: people.filter((p) => p.baptized && !p.archived).length,
@@ -709,13 +712,20 @@ export default function ClientHome({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
                   <OverviewStatCard
                     icon="👥"
                     title="Всего людей"
-                    value={people.filter((p) => !p.archived).length}
+                    value={people.filter((p) => !p.archived && p.level !== "passerby").length}
                     iconBg="bg-violet-100"
                   />
+
+                  <OverviewStatCard
+  icon="🚶"
+  title="Проходные"
+  value={people.filter((p) => !p.archived && p.level === "passerby").length}
+  iconBg="bg-zinc-100"
+/>
 
                   <OverviewStatCard
                     icon="🆕"
@@ -837,6 +847,7 @@ export default function ClientHome({
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
                     >
                       <option value="all">Все уровни</option>
+                      <option value="passerby">Проходной</option>
                       <option value="local">Местная</option>
                       <option value="visiting">Посещающая</option>
                       <option value="church">Церковная</option>
@@ -904,6 +915,7 @@ export default function ClientHome({
                         value={form.level}
                         onChange={(v) => setForm({ ...form, level: v })}
                         options={[
+                          ["passerby", "Проходной"],
                           ["local", "Местная"],
                           ["visiting", "Посещающая"],
                           ["church", "Церковная"],
@@ -1132,6 +1144,7 @@ export default function ClientHome({
                             value={editForm.level}
                             onChange={(v) => setEditForm({ ...editForm, level: v })}
                             options={[
+                              ["passerby", "Проходной"],
                               ["local", "Местная"],
                               ["visiting", "Посещающая"],
                               ["church", "Церковная"],
