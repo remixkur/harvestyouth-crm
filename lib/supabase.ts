@@ -1,6 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = "https://koigswanceixhtnpmhgj.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvaWdzd2FuY2VpeGh0bnBtaGdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzOTcwMjEsImV4cCI6MjA4ODk3MzAyMX0.88-0Br8Ds-TfHDcsCjYrLKjNZwYV0GmL15WcmAPCz24";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: "harvestyouth-crm-auth",
+  },
+});

@@ -12,37 +12,78 @@ export default function Home() {
   const [peopleError, setPeopleError] = useState<string | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
 
+  async function refreshSession() {
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Session refresh error:", error);
+        return;
+      }
+
+      setSession(session);
+    } catch (e) {
+      console.error("Session refresh catch:", e);
+    } finally {
+      setSessionChecked(true);
+    }
+  }
+
   useEffect(() => {
     let mounted = true;
 
-    async function checkSession() {
+    async function initSession() {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
         if (!mounted) return;
+
         setSession(session);
-      } catch (e: any) {
+      } catch (e) {
         console.error("Session error:", e);
       } finally {
         if (mounted) setSessionChecked(true);
       }
     }
 
-    checkSession();
+    initSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
-      setSession(session);
-      setSessionChecked(true);
+
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        setSessionChecked(true);
+        return;
+      }
+
+      if (session) {
+        setSession(session);
+        setSessionChecked(true);
+      }
     });
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        refreshSession();
+      }
+    };
+
+    window.addEventListener("focus", refreshSession);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      window.removeEventListener("focus", refreshSession);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
