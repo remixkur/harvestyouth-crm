@@ -20,6 +20,32 @@ type Report = {
   created_at: string;
 };
 
+type ReportForm = {
+  report_date: string;
+  group_name: string;
+  leader_name: string;
+  topic: string;
+  people_count: string;
+  location: string;
+  how_was_it: string;
+  positives: string;
+  negatives: string;
+  improvement_plan: string;
+};
+
+const emptyForm = (leaderName = ""): ReportForm => ({
+  report_date: new Date().toISOString().slice(0, 10),
+  group_name: "",
+  leader_name: leaderName,
+  topic: "",
+  people_count: "",
+  location: "",
+  how_was_it: "",
+  positives: "",
+  negatives: "",
+  improvement_plan: "",
+});
+
 export default function HomeGroupReportsSection({
   session,
   profile,
@@ -32,19 +58,13 @@ export default function HomeGroupReportsSection({
   const [saving, setSaving] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
+  const [editingReportId, setEditingReportId] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    report_date: new Date().toISOString().slice(0, 10),
-    group_name: "",
-    leader_name: profile?.mentor_name || "",
-    topic: "",
-    people_count: "",
-    location: "",
-    how_was_it: "",
-    positives: "",
-    negatives: "",
-    improvement_plan: "",
-  });
+  const [form, setForm] = useState<ReportForm>(
+    emptyForm(profile?.mentor_name || "")
+  );
+
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   async function loadReports() {
     setLoading(true);
@@ -68,7 +88,58 @@ export default function HomeGroupReportsSection({
     loadReports();
   }, []);
 
-  async function handleAddReport(e: React.FormEvent) {
+  function resetForm() {
+    setForm(emptyForm(profile?.mentor_name || ""));
+    setPhotoFile(null);
+    setEditingReportId(null);
+    setShowForm(false);
+  }
+
+  function startEdit(report: Report) {
+    setEditingReportId(report.id);
+    setShowForm(true);
+    setPhotoFile(null);
+
+    setForm({
+      report_date: report.report_date || new Date().toISOString().slice(0, 10),
+      group_name: report.group_name || "",
+      leader_name: report.leader_name || profile?.mentor_name || "",
+      topic: report.topic || "",
+      people_count: report.people_count?.toString() || "",
+      location: report.location || "",
+      how_was_it: report.how_was_it || "",
+      positives: report.positives || "",
+      negatives: report.negatives || "",
+      improvement_plan: report.improvement_plan || "",
+    });
+  }
+
+  async function uploadPhoto(reportId: string) {
+    if (!photoFile) return null;
+
+    const fileExt = photoFile.name.split(".").pop() || "jpg";
+    const fileName = `${reportId}-${Date.now()}.${fileExt}`;
+    const filePath = `${session.user.id}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("home-group-photos")
+      .upload(filePath, photoFile, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      throw new Error("Ошибка загрузки фото: " + uploadError.message);
+    }
+
+    const { data } = supabase.storage
+      .from("home-group-photos")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
+
+  async function handleSubmitReport(e: React.FormEvent) {
     e.preventDefault();
 
     if (!form.report_date || !form.group_name.trim() || !form.leader_name.trim()) {
@@ -78,50 +149,117 @@ export default function HomeGroupReportsSection({
 
     setSaving(true);
 
-    const { data, error } = await supabase
-      .from("home_group_reports")
-      .insert([
-        {
-          report_date: form.report_date,
-          group_name: form.group_name.trim(),
-          leader_name: form.leader_name.trim(),
-          topic: form.topic.trim() || null,
-          people_count: form.people_count ? Number(form.people_count) : null,
-          location: form.location.trim() || null,
-          how_was_it: form.how_was_it.trim() || null,
-          positives: form.positives.trim() || null,
-          negatives: form.negatives.trim() || null,
-          improvement_plan: form.improvement_plan.trim() || null,
-          photo_url: null,
-          created_by: session.user.id,
-        },
-      ])
-      .select()
-      .single();
+    try {
+      const basePayload = {
+        report_date: form.report_date,
+        group_name: form.group_name.trim(),
+        leader_name: form.leader_name.trim(),
+        topic: form.topic.trim() || null,
+        people_count: form.people_count ? Number(form.people_count) : null,
+        location: form.location.trim() || null,
+        how_was_it: form.how_was_it.trim() || null,
+        positives: form.positives.trim() || null,
+        negatives: form.negatives.trim() || null,
+        improvement_plan: form.improvement_plan.trim() || null,
+      };
 
-    setSaving(false);
+      if (editingReportId) {
+        let photo_url: string | null = null;
+
+        if (photoFile) {
+          photo_url = await uploadPhoto(editingReportId);
+        }
+
+        const updatePayload = photo_url
+          ? { ...basePayload, photo_url }
+          : basePayload;
+
+        const { data, error } = await supabase
+          .from("home_group_reports")
+          .update(updatePayload)
+          .eq("id", editingReportId)
+          .select()
+          .single();
+
+        if (error) {
+          throw new Error("Ошибка обновления отчёта: " + error.message);
+        }
+
+        if (data) {
+          setReports((prev) =>
+            prev.map((report) => (report.id === data.id ? data : report))
+          );
+        }
+
+        resetForm();
+        return;
+      }
+
+      const { data: createdReport, error: insertError } = await supabase
+        .from("home_group_reports")
+        .insert([
+          {
+            ...basePayload,
+            photo_url: null,
+            created_by: session.user.id,
+          },
+        ])
+        .select()
+        .single();
+
+      if (insertError) {
+        throw new Error("Ошибка сохранения отчёта: " + insertError.message);
+      }
+
+      let finalReport = createdReport;
+
+      if (createdReport && photoFile) {
+        const photo_url = await uploadPhoto(createdReport.id);
+
+        const { data: updatedReport, error: photoUpdateError } = await supabase
+          .from("home_group_reports")
+          .update({ photo_url })
+          .eq("id", createdReport.id)
+          .select()
+          .single();
+
+        if (photoUpdateError) {
+          throw new Error("Фото загрузилось, но ссылка не сохранилась: " + photoUpdateError.message);
+        }
+
+        finalReport = updatedReport;
+      }
+
+      if (finalReport) {
+        setReports((prev) => [finalReport, ...prev]);
+      }
+
+      resetForm();
+    } catch (e: any) {
+      alert(e.message || "Неизвестная ошибка");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteReport(report: Report) {
+    const confirmed = confirm(
+      `Удалить отчёт "${report.group_name}" от ${formatDate(report.report_date)}?`
+    );
+
+    if (!confirmed) return;
+
+    const { error } = await supabase
+      .from("home_group_reports")
+      .delete()
+      .eq("id", report.id);
 
     if (error) {
-      alert("Ошибка сохранения отчёта: " + error.message);
+      alert("Ошибка удаления отчёта: " + error.message);
       return;
     }
 
-    if (data) {
-      setReports((prev) => [data, ...prev]);
-      setShowForm(false);
-      setForm({
-        report_date: new Date().toISOString().slice(0, 10),
-        group_name: "",
-        leader_name: profile?.mentor_name || "",
-        topic: "",
-        people_count: "",
-        location: "",
-        how_was_it: "",
-        positives: "",
-        negatives: "",
-        improvement_plan: "",
-      });
-    }
+    setReports((prev) => prev.filter((item) => item.id !== report.id));
   }
 
   return (
@@ -137,7 +275,14 @@ export default function HomeGroupReportsSection({
         </div>
 
         <button
-          onClick={() => setShowForm((prev) => !prev)}
+          onClick={() => {
+            if (showForm) {
+              resetForm();
+              return;
+            }
+
+            setShowForm(true);
+          }}
           className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
         >
           {showForm ? "Закрыть" : "+ Добавить отчёт"}
@@ -146,9 +291,11 @@ export default function HomeGroupReportsSection({
 
       {showForm && (
         <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 text-lg font-semibold">Новый отчёт</div>
+          <div className="mb-4 text-lg font-semibold">
+            {editingReportId ? "Редактировать отчёт" : "Новый отчёт"}
+          </div>
 
-          <form onSubmit={handleAddReport} className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <form onSubmit={handleSubmitReport} className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <FieldLabel label="Дата домашки">
               <input
                 type="date"
@@ -205,6 +352,18 @@ export default function HomeGroupReportsSection({
               />
             </FieldLabel>
 
+            <FieldLabel label="Фото">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none"
+              />
+              <div className="mt-1 text-xs text-slate-400">
+                {photoFile ? photoFile.name : "Можно оставить пустым"}
+              </div>
+            </FieldLabel>
+
             <TextAreaField
               label="Как прошла домашка"
               value={form.how_was_it}
@@ -229,13 +388,27 @@ export default function HomeGroupReportsSection({
               onChange={(value) => setForm({ ...form, improvement_plan: value })}
             />
 
-            <div className="flex justify-end md:col-span-2">
+            <div className="flex flex-col justify-end gap-3 md:col-span-2 sm:flex-row">
+              {editingReportId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold hover:bg-slate-50"
+                >
+                  Отмена
+                </button>
+              )}
+
               <button
                 type="submit"
                 disabled={saving}
                 className="rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60"
               >
-                {saving ? "Сохраняем..." : "Сохранить отчёт"}
+                {saving
+                  ? "Сохраняем..."
+                  : editingReportId
+                  ? "Сохранить изменения"
+                  : "Сохранить отчёт"}
               </button>
             </div>
           </form>
@@ -267,10 +440,36 @@ export default function HomeGroupReportsSection({
                     </div>
                   </div>
 
-                  <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
-                    {report.people_count ?? "—"} чел.
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-600">
+                      {report.people_count ?? "—"} чел.
+                    </div>
+
+                    <button
+                      onClick={() => startEdit(report)}
+                      className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium hover:bg-slate-50"
+                    >
+                      Редактировать
+                    </button>
+
+                    <button
+                      onClick={() => handleDeleteReport(report)}
+                      className="rounded-full border border-rose-200 px-3 py-1 text-sm font-medium text-rose-600 hover:bg-rose-50"
+                    >
+                      Удалить
+                    </button>
                   </div>
                 </div>
+
+                {report.photo_url && (
+                  <div className="mt-4">
+                    <img
+                      src={report.photo_url}
+                      alt={`Фото отчёта ${report.group_name}`}
+                      className="max-h-[360px] w-full rounded-2xl object-cover"
+                    />
+                  </div>
+                )}
 
                 <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                   <ReportDetail label="Тема" value={report.topic || "—"} />
