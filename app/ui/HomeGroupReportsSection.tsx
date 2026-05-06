@@ -59,12 +59,18 @@ export default function HomeGroupReportsSection({
 
   const [showForm, setShowForm] = useState(false);
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
+  const [reportsView, setReportsView] = useState<"mine" | "all">("mine");
 
   const [form, setForm] = useState<ReportForm>(
     emptyForm(profile?.mentor_name || "")
   );
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+
+  const visibleReports =
+  reportsView === "mine"
+    ? reports.filter((report) => report.created_by === session.user.id)
+    : reports;
 
   async function loadReports() {
     setLoading(true);
@@ -417,18 +423,44 @@ export default function HomeGroupReportsSection({
 
       <div className="rounded-[28px] border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-100 bg-slate-50/70 px-5 py-4">
-          <div className="text-lg font-semibold">
-            {profile?.role === "admin" ? "Все отчёты" : "Мои отчёты"}
-          </div>
-        </div>
+  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="text-lg font-semibold">
+      {reportsView === "mine" ? "Мои отчёты" : "Все отчёты"}
+    </div>
+
+    <div className="flex rounded-2xl border border-slate-200 bg-white p-1">
+      <button
+        onClick={() => setReportsView("mine")}
+        className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+          reportsView === "mine"
+            ? "bg-indigo-600 text-white"
+            : "text-slate-600 hover:bg-slate-50"
+        }`}
+      >
+        Мои отчёты
+      </button>
+
+      <button
+        onClick={() => setReportsView("all")}
+        className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+          reportsView === "all"
+            ? "bg-indigo-600 text-white"
+            : "text-slate-600 hover:bg-slate-50"
+        }`}
+      >
+        Все отчёты
+      </button>
+    </div>
+  </div>
+</div>
 
         {loading ? (
           <div className="p-6 text-slate-500">Загружаем отчёты...</div>
-        ) : reports.length === 0 ? (
+      ) : visibleReports.length === 0 ? (
           <div className="p-6 text-slate-500">Отчётов пока нет</div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {reports.map((report) => (
+           {visibleReports.map((report) => (
               <div key={report.id} className="p-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -445,19 +477,23 @@ export default function HomeGroupReportsSection({
                       {report.people_count ?? "—"} чел.
                     </div>
 
-                    <button
-                      onClick={() => startEdit(report)}
-                      className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium hover:bg-slate-50"
-                    >
-                      Редактировать
-                    </button>
+                    {(report.created_by === session.user.id || profile?.role === "admin") && (
+  <>
+    <button
+      onClick={() => startEdit(report)}
+      className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium hover:bg-slate-50"
+    >
+      Редактировать
+    </button>
 
-                    <button
-                      onClick={() => handleDeleteReport(report)}
-                      className="rounded-full border border-rose-200 px-3 py-1 text-sm font-medium text-rose-600 hover:bg-rose-50"
-                    >
-                      Удалить
-                    </button>
+    <button
+      onClick={() => handleDeleteReport(report)}
+      className="rounded-full border border-rose-200 px-3 py-1 text-sm font-medium text-rose-600 hover:bg-rose-50"
+    >
+      Удалить
+    </button>
+  </>
+)}
                   </div>
                 </div>
 
