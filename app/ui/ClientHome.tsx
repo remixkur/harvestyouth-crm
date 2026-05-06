@@ -5,6 +5,7 @@ import GrowthSection from "./GrowthSection";
 import BaptismSection from "./BaptismSection";
 import MobilePersonScreen from "./MobilePersonScreen";
 import { supabase } from "../../lib/supabase";
+import HomeGroupReportsSection from "./HomeGroupReportsSection";
 
 type Person = {
   id: number;
@@ -659,6 +660,9 @@ function setActivePage(page: string) {
               <SidebarButton active={activePage === "growth"} onClick={() => setActivePage("growth")}>
                 Путь роста
               </SidebarButton>
+              <SidebarButton active={activePage === "home_reports"} onClick={() => setActivePage("home_reports")}>
+  Домашки
+</SidebarButton>
               <SidebarButton active={activePage === "baptism"} onClick={() => setActivePage("baptism")}>
                 Крещение
               </SidebarButton>
@@ -685,6 +689,9 @@ function setActivePage(page: string) {
                 <SidebarButton active={activePage === "growth"} onClick={() => setActivePage("growth")}>
                   ПР
                 </SidebarButton>
+                <SidebarButton active={activePage === "home_reports"} onClick={() => setActivePage("home_reports")}>
+  Домашки
+</SidebarButton>
                 <SidebarButton active={activePage === "baptism"} onClick={() => setActivePage("baptism")}>
                   Крещение
                 </SidebarButton>
@@ -1350,6 +1357,10 @@ function setActivePage(page: string) {
                 quickToggleBaptized={quickToggleBaptized}
               />
             )}
+
+            {activePage === "home_reports" && (
+  <HomeGroupReportsSection session={session} profile={profile} />
+)}
 
             {activePage === "baptism" && (
               <BaptismSection
