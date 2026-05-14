@@ -1,7 +1,15 @@
 "use client";
 
 import React from "react";
-import { getLevelBadgeClass, getLevelLabel, levelOptions } from "./levels";
+import {
+  coreRoleOptions,
+  getCoreRoleBadgeClass,
+  getCoreRoleLabel,
+  getLevelBadgeClass,
+  getLevelLabel,
+  levelOptions,
+  normalizeLevel,
+} from "./levels";
 
 type Person = {
   id: number;
@@ -10,6 +18,7 @@ type Person = {
   gender: string | null;
   mentor_name: string | null;
   level: string;
+  core_role: string | null;
   source: string | null;
   service_team: string | null;
   home_group: string | null;
@@ -29,6 +38,7 @@ type EditForm = {
   contact: string;
   mentor_name: string;
   level: string;
+  core_role: string;
   source: string;
   service_team: string;
   home_group: string;
@@ -203,6 +213,18 @@ startEdit: (person: any) => void;
               >
                 {getLevelLabel(selectedPerson.level)}
               </span>
+              {normalizeLevel(selectedPerson.level) === "core" && (
+                <span
+                  className={cx(
+                    "ml-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
+                    getCoreRoleBadgeClass(
+                      selectedPerson.core_role || selectedPerson.level
+                    )
+                  )}
+                >
+                  {getCoreRoleLabel(selectedPerson.core_role || selectedPerson.level)}
+                </span>
+              )}
             </div>
           </div>
 
@@ -216,6 +238,18 @@ startEdit: (person: any) => void;
                 onChange={(v) => setEditForm({ ...editForm, level: v })}
                 options={levelOptions}
               />
+              {editForm.level === "core" && (
+                <div className="space-y-1">
+                  <div className="px-1 text-xs font-semibold uppercase text-slate-400">
+                    Роль в ядре
+                  </div>
+                  <SelectField
+                    value={editForm.core_role}
+                    onChange={(v) => setEditForm({ ...editForm, core_role: v })}
+                    options={coreRoleOptions}
+                  />
+                </div>
+              )}
               <Input value={editForm.source} onChange={(v) => setEditForm({ ...editForm, source: v })} placeholder="Источник" />
               <Input value={editForm.service_team} onChange={(v) => setEditForm({ ...editForm, service_team: v })} placeholder="Служение" />
               <Input value={editForm.home_group} onChange={(v) => setEditForm({ ...editForm, home_group: v })} placeholder="Домашка" />
@@ -252,6 +286,14 @@ startEdit: (person: any) => void;
                 <Detail label="Контакт" value={selectedPerson.contact || "—"} />
                 <Detail label="Пол" value={selectedPerson.gender || "—"} />
                 <Detail label="Наставник" value={selectedPerson.mentor_name || "—"} />
+                {normalizeLevel(selectedPerson.level) === "core" && (
+                  <Detail
+                    label="Роль в ядре"
+                    value={getCoreRoleLabel(
+                      selectedPerson.core_role || selectedPerson.level
+                    )}
+                  />
+                )}
                 <Detail label="Источник" value={selectedPerson.source || "—"} />
                 <Detail label="Служение" value={selectedPerson.service_team || "—"} />
                 <Detail label="Домашка" value={selectedPerson.home_group || "—"} />

@@ -4,8 +4,9 @@ export type LevelValue =
   | "visiting"
   | "church"
   | "committed"
-  | "leader"
-  | "pastor";
+  | "core";
+
+export type CoreRoleValue = "leader" | "pastor";
 
 export const levelOptions: string[][] = [
   ["passerby", "Проходной"],
@@ -13,6 +14,10 @@ export const levelOptions: string[][] = [
   ["visiting", "Посещающая"],
   ["church", "Церковная"],
   ["committed", "Посвящённая"],
+  ["core", "Ядро"],
+];
+
+export const coreRoleOptions: string[][] = [
   ["leader", "Лидер"],
   ["pastor", "Пастор"],
 ];
@@ -23,6 +28,10 @@ export const levelLabels: Record<string, string> = {
   visiting: "Посещающая",
   church: "Церковная",
   committed: "Посвящённая",
+  core: "Ядро",
+};
+
+export const coreRoleLabels: Record<CoreRoleValue, string> = {
   leader: "Лидер",
   pastor: "Пастор",
 };
@@ -33,8 +42,7 @@ export const levelOrder: Record<string, number> = {
   visiting: 2,
   church: 3,
   committed: 4,
-  leader: 5,
-  pastor: 6,
+  core: 5,
 };
 
 export const levelBadge: Record<string, string> = {
@@ -43,14 +51,24 @@ export const levelBadge: Record<string, string> = {
   visiting: "bg-emerald-100/70 text-emerald-700 border border-emerald-200 shadow-sm",
   church: "bg-blue-100/70 text-blue-700 border border-blue-200 shadow-sm",
   committed: "bg-orange-100/70 text-orange-700 border border-orange-200 shadow-sm",
-  leader: "bg-rose-100/70 text-rose-700 border border-rose-200 shadow-sm",
-  pastor: "bg-cyan-100/80 text-cyan-700 border border-cyan-200 shadow-sm",
+  core: "bg-rose-100/70 text-rose-700 border border-rose-200 shadow-sm",
+};
+
+export const coreRoleBadge: Record<CoreRoleValue, string> = {
+  leader: "bg-white text-rose-700 ring-1 ring-rose-200",
+  pastor: "bg-white text-cyan-700 ring-1 ring-cyan-200",
 };
 
 export function normalizeLevel(level: string | null | undefined): LevelValue {
-  if (level === "core") return "leader";
+  if (level === "leader" || level === "pastor") return "core";
   if (level && level in levelLabels) return level as LevelValue;
   return "local";
+}
+
+export function normalizeCoreRole(
+  role: string | null | undefined
+): CoreRoleValue {
+  return role === "pastor" ? "pastor" : "leader";
 }
 
 export function getLevelLabel(level: string | null | undefined) {
@@ -59,4 +77,12 @@ export function getLevelLabel(level: string | null | undefined) {
 
 export function getLevelBadgeClass(level: string | null | undefined) {
   return levelBadge[normalizeLevel(level)] || "bg-slate-100 text-slate-700";
+}
+
+export function getCoreRoleLabel(role: string | null | undefined) {
+  return coreRoleLabels[normalizeCoreRole(role)];
+}
+
+export function getCoreRoleBadgeClass(role: string | null | undefined) {
+  return coreRoleBadge[normalizeCoreRole(role)];
 }
