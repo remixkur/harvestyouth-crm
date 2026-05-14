@@ -6,6 +6,14 @@ import BaptismSection from "./BaptismSection";
 import MobilePersonScreen from "./MobilePersonScreen";
 import { supabase } from "../../lib/supabase";
 import HomeGroupReportsSection from "./HomeGroupReportsSection";
+import {
+  getLevelBadgeClass,
+  getLevelLabel,
+  levelBadge,
+  levelOptions,
+  levelOrder,
+  normalizeLevel,
+} from "./levels";
 
 type Person = {
   id: number;
@@ -34,33 +42,6 @@ type Person = {
   baptism_lesson_1: boolean;
   baptism_lesson_2: boolean;
   baptism_ready: boolean;
-};
-
-const levelLabels: Record<string, string> = {
-  passerby: "Проходной",
-  local: "Местная",
-  visiting: "Посещающая",
-  church: "Церковная",
-  committed: "Посвящённая",
-  core: "Ядро",
-};
-
-const levelOrder: Record<string, number> = {
-  passerby: 0,
-  local: 1,
-  visiting: 2,
-  church: 3,
-  committed: 4,
-  core: 5,
-};
-
-const levelBadge: Record<string, string> = {
-  passerby: "bg-zinc-100 text-zinc-600 border border-zinc-200 shadow-sm",
-  local: "bg-slate-100 text-slate-700 border border-slate-200 shadow-sm",
-  visiting: "bg-emerald-100/70 text-emerald-700 border border-emerald-200 shadow-sm",
-  church: "bg-blue-100/70 text-blue-700 border border-blue-200 shadow-sm",
-  committed: "bg-orange-100/70 text-orange-700 border border-orange-200 shadow-sm",
-  core: "bg-rose-100/70 text-rose-700 border border-rose-200 shadow-sm",
 };
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -171,7 +152,8 @@ function setActivePage(page: string) {
           : p.archived;
 
       const byMentor = mentorFilter === "all" ? true : p.mentor_name === mentorFilter;
-      const byLevel = levelFilter === "all" ? true : p.level === levelFilter;
+      const byLevel =
+        levelFilter === "all" ? true : normalizeLevel(p.level) === levelFilter;
 
       const byBaptized =
         baptizedFilter === "all"
@@ -197,11 +179,17 @@ function setActivePage(page: string) {
     })
     .sort((a, b) => {
       if (sortOrder === "level_asc") {
-        return (levelOrder[a.level] || 999) - (levelOrder[b.level] || 999);
+        return (
+          (levelOrder[normalizeLevel(a.level)] ?? 999) -
+          (levelOrder[normalizeLevel(b.level)] ?? 999)
+        );
       }
 
       if (sortOrder === "level_desc") {
-        return (levelOrder[b.level] || 999) - (levelOrder[a.level] || 999);
+        return (
+          (levelOrder[normalizeLevel(b.level)] ?? 999) -
+          (levelOrder[normalizeLevel(a.level)] ?? 999)
+        );
       }
 
       return 0;
@@ -216,18 +204,28 @@ function setActivePage(page: string) {
     null;
 
   const stats = {
-   total: people.filter((p) => !p.archived && p.level !== "passerby").length,
-    growth: people.filter((p) => !p.archived && (p.lesson_1 || p.lesson_2 || p.lesson_3 || p.lesson_4)).length,
+    total: people.filter((p) => !p.archived && normalizeLevel(p.level) !== "passerby").length,
+    growth: people.filter(
+      (p) => !p.archived && (p.lesson_1 || p.lesson_2 || p.lesson_3 || p.lesson_4)
+    ).length,
     mentors: new Set(people.map((p) => p.mentor_name).filter(Boolean)).size,
     baptized: people.filter((p) => p.baptized && !p.archived).length,
   };
 
   const levelStats = {
-    local: people.filter((p) => !p.archived && p.level === "local").length,
-    visiting: people.filter((p) => !p.archived && p.level === "visiting").length,
-    church: people.filter((p) => !p.archived && p.level === "church").length,
-    committed: people.filter((p) => !p.archived && p.level === "committed").length,
-    core: people.filter((p) => !p.archived && p.level === "core").length,
+    local: people.filter((p) => !p.archived && normalizeLevel(p.level) === "local")
+      .length,
+    visiting: people.filter((p) => !p.archived && normalizeLevel(p.level) === "visiting")
+      .length,
+    church: people.filter((p) => !p.archived && normalizeLevel(p.level) === "church")
+      .length,
+    committed: people.filter(
+      (p) => !p.archived && normalizeLevel(p.level) === "committed"
+    ).length,
+    leader: people.filter((p) => !p.archived && normalizeLevel(p.level) === "leader")
+      .length,
+    pastor: people.filter((p) => !p.archived && normalizeLevel(p.level) === "pastor")
+      .length,
   };
 
   const mentorOptions = Array.from(
@@ -239,7 +237,7 @@ function setActivePage(page: string) {
       full_name: person.full_name || "",
       contact: person.contact || "",
       mentor_name: person.mentor_name || "",
-      level: person.level || "local",
+      level: normalizeLevel(person.level),
       source: person.source || "",
       service_team: person.service_team || "",
       home_group: person.home_group || "",
@@ -731,14 +729,14 @@ function setActivePage(page: string) {
                   <OverviewStatCard
                     icon="👥"
                     title="Всего людей"
-                    value={people.filter((p) => !p.archived && p.level !== "passerby").length}
+                    value={people.filter((p) => !p.archived && normalizeLevel(p.level) !== "passerby").length}
                     iconBg="bg-violet-100"
                   />
 
                   <OverviewStatCard
   icon="🚶"
   title="Проходные"
-  value={people.filter((p) => !p.archived && p.level === "passerby").length}
+  value={people.filter((p) => !p.archived && normalizeLevel(p.level) === "passerby").length}
   iconBg="bg-zinc-100"
 />
 
@@ -808,10 +806,16 @@ function setActivePage(page: string) {
                       badgeClass={levelBadge.committed}
                     />
                     <LevelBar
-                      label="Ядро"
-                      value={levelStats.core}
+                      label="Лидеры"
+                      value={levelStats.leader}
                       total={Math.max(stats.total, 1)}
-                      badgeClass={levelBadge.core}
+                      badgeClass={levelBadge.leader}
+                    />
+                    <LevelBar
+                      label="Пасторы"
+                      value={levelStats.pastor}
+                      total={Math.max(stats.total, 1)}
+                      badgeClass={levelBadge.pastor}
                     />
                   </div>
                 </div>
@@ -867,7 +871,8 @@ function setActivePage(page: string) {
                       <option value="visiting">Посещающая</option>
                       <option value="church">Церковная</option>
                       <option value="committed">Посвящённая</option>
-                      <option value="core">Ядро</option>
+                      <option value="leader">Лидер</option>
+                      <option value="pastor">Пастор</option>
                     </select>
 
                     <select
@@ -907,8 +912,8 @@ function setActivePage(page: string) {
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none xl:col-span-1 md:col-span-2"
                     >
                       <option value="default">Без сортировки</option>
-                      <option value="level_asc">От местной к ядру</option>
-                      <option value="level_desc">От ядра к местной</option>
+                      <option value="level_asc">От местной к пасторам</option>
+                      <option value="level_desc">От пасторов к местной</option>
                     </select>
                   </div>
                 </div>
@@ -929,14 +934,7 @@ function setActivePage(page: string) {
                       <SelectField
                         value={form.level}
                         onChange={(v) => setForm({ ...form, level: v })}
-                        options={[
-                          ["passerby", "Проходной"],
-                          ["local", "Местная"],
-                          ["visiting", "Посещающая"],
-                          ["church", "Церковная"],
-                          ["committed", "Посвящённая"],
-                          ["core", "Ядро"],
-                        ]}
+                        options={levelOptions}
                       />
                       <Input value={form.source} onChange={(v) => setForm({ ...form, source: v })} placeholder="Источник" />
                       <Input value={form.service_team} onChange={(v) => setForm({ ...form, service_team: v })} placeholder="Служение" />
@@ -1001,10 +999,10 @@ function setActivePage(page: string) {
                             <span
                               className={cx(
                                 "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
-                                levelBadge[person.level] || "bg-slate-100 text-slate-700"
+                                getLevelBadgeClass(person.level)
                               )}
                             >
-                              {levelLabels[person.level] || person.level}
+                              {getLevelLabel(person.level)}
                             </span>
                           </div>
 
@@ -1066,10 +1064,10 @@ function setActivePage(page: string) {
                           <span
                             className={cx(
                               "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
-                              levelBadge[person.level] || "bg-slate-100 text-slate-700"
+                              getLevelBadgeClass(person.level)
                             )}
                           >
-                            {levelLabels[person.level] || person.level}
+                            {getLevelLabel(person.level)}
                           </span>
                         </div>
 
@@ -1114,8 +1112,6 @@ function setActivePage(page: string) {
                     setEditForm={setEditForm}
                     saving={saving}
                     handleSaveEdit={handleSaveEdit}
-                    levelBadge={levelBadge}
-                    levelLabels={levelLabels}
                     formatMeetingDate={formatMeetingDate}
                     getDaysAgo={getDaysAgo}
                     showMeetingPicker={showMeetingPicker}
@@ -1142,10 +1138,10 @@ function setActivePage(page: string) {
                           <span
                             className={cx(
                               "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
-                              levelBadge[selectedPerson.level] || "bg-slate-100 text-slate-700"
+                              getLevelBadgeClass(selectedPerson.level)
                             )}
                           >
-                            {levelLabels[selectedPerson.level] || selectedPerson.level}
+                            {getLevelLabel(selectedPerson.level)}
                           </span>
                         </div>
                       </div>
@@ -1158,14 +1154,7 @@ function setActivePage(page: string) {
                           <SelectField
                             value={editForm.level}
                             onChange={(v) => setEditForm({ ...editForm, level: v })}
-                            options={[
-                              ["passerby", "Проходной"],
-                              ["local", "Местная"],
-                              ["visiting", "Посещающая"],
-                              ["church", "Церковная"],
-                              ["committed", "Посвящённая"],
-                              ["core", "Ядро"],
-                            ]}
+                            options={levelOptions}
                           />
                           <Input value={editForm.source} onChange={(v) => setEditForm({ ...editForm, source: v })} placeholder="Источник" />
                           <Input value={editForm.service_team} onChange={(v) => setEditForm({ ...editForm, service_team: v })} placeholder="Служение" />

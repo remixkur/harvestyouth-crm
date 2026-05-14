@@ -131,7 +131,7 @@ export default function HomeGroupReportsSection({
       .from("home-group-photos")
       .upload(filePath, photoFile, {
         cacheControl: "3600",
-        upsert: true,
+        upsert: false,
       });
 
     if (uploadError) {

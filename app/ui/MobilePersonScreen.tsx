@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { getLevelBadgeClass, getLevelLabel, levelOptions } from "./levels";
 
 type Person = {
   id: number;
@@ -126,8 +127,6 @@ export default function MobilePersonScreen({
   setEditForm,
   saving,
   handleSaveEdit,
-  levelBadge,
-  levelLabels,
   formatMeetingDate,
   getDaysAgo,
   showMeetingPicker,
@@ -151,8 +150,6 @@ export default function MobilePersonScreen({
   setEditForm: (value: EditForm) => void;
   saving: boolean;
   handleSaveEdit: (e: React.FormEvent) => void;
-  levelBadge: Record<string, string>;
-  levelLabels: Record<string, string>;
   formatMeetingDate: (value: string | null) => string;
   getDaysAgo: (value: string | null) => string | null;
   showMeetingPicker: boolean;
@@ -201,10 +198,10 @@ startEdit: (person: any) => void;
               <span
                 className={cx(
                   "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
-                  levelBadge[selectedPerson.level] || "bg-slate-100 text-slate-700"
+                  getLevelBadgeClass(selectedPerson.level)
                 )}
               >
-                {levelLabels[selectedPerson.level] || selectedPerson.level}
+                {getLevelLabel(selectedPerson.level)}
               </span>
             </div>
           </div>
@@ -217,13 +214,7 @@ startEdit: (person: any) => void;
               <SelectField
                 value={editForm.level}
                 onChange={(v) => setEditForm({ ...editForm, level: v })}
-                options={[
-                  ["local", "Местная"],
-                  ["visiting", "Посещающая"],
-                  ["church", "Церковная"],
-                  ["committed", "Посвящённая"],
-                  ["core", "Ядро"],
-                ]}
+                options={levelOptions}
               />
               <Input value={editForm.source} onChange={(v) => setEditForm({ ...editForm, source: v })} placeholder="Источник" />
               <Input value={editForm.service_team} onChange={(v) => setEditForm({ ...editForm, service_team: v })} placeholder="Служение" />

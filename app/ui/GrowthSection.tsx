@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-  
+import React, { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 type Person = {
   id: number;
@@ -17,6 +17,26 @@ type Person = {
 };
 
 type LessonKey = "lesson_1" | "lesson_2" | "lesson_3" | "lesson_4";
+
+const growthLessons = [
+  { number: 1, key: "lesson_1", label: "Урок 1" },
+  { number: 2, key: "lesson_2", label: "Урок 2" },
+  { number: 3, key: "lesson_3", label: "Урок 3" },
+  { number: 4, key: "lesson_4", label: "Урок 4" },
+] as const;
+
+function getLessonLabel(lessonNumber: number | null) {
+  if (!lessonNumber) return "Не выбрано";
+  return (
+    growthLessons.find((lesson) => lesson.number === lessonNumber)?.label ||
+    "Не выбрано"
+  );
+}
+
+function getNextLessonNumber(lastLessonNumber: number | null) {
+  if (!lastLessonNumber) return null;
+  return lastLessonNumber === 4 ? 1 : lastLessonNumber + 1;
+}
 
 function GrowthCell({
   active,
@@ -67,18 +87,154 @@ export default function GrowthSection({
   quickToggleLesson,
   quickToggleBaptized,
 }: {
-  people: any[];
+  people: Person[];
   quickToggleLesson: (person: any, lesson: LessonKey) => void;
   quickToggleBaptized: (person: any) => void;
-}){
+}) {
+  const [lastSundayLesson, setLastSundayLesson] = useState<number | null>(null);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
   const activeGrowthPeople = people.filter((p) => !p.archived && !p.full_course);
   const completedGrowthPeople = people.filter((p) => !p.archived && p.full_course);
+  const nextSundayLesson = getNextLessonNumber(lastSundayLesson);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadGrowthSchedule() {
+      const { data, error } = await supabase
+        .from("growth_lesson_cycle")
+        .select("last_lesson_number")
+        .eq("id", true)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      setScheduleLoading(false);
+
+      if (error) {
+        setScheduleError(
+          "Не удалось загрузить расписание уроков. Проверь, что миграция Supabase применена."
+        );
+        return;
+      }
+
+      setLastSundayLesson(data?.last_lesson_number ?? null);
+    }
+
+    loadGrowthSchedule();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function updateLastSundayLesson(lessonNumber: number) {
+    setScheduleSaving(true);
+    setScheduleError(null);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { data, error } = await supabase
+      .from("growth_lesson_cycle")
+      .upsert(
+        {
+          id: true,
+          last_lesson_number: lessonNumber,
+          updated_at: new Date().toISOString(),
+          updated_by: user?.id ?? null,
+        },
+        { onConflict: "id" }
+      )
+      .select("last_lesson_number")
+      .single();
+
+    setScheduleSaving(false);
+
+    if (error) {
+      setScheduleError("Не удалось сохранить урок: " + error.message);
+      return;
+    }
+
+    setLastSundayLesson(data?.last_lesson_number ?? lessonNumber);
+  }
 
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-3xl font-bold tracking-tight sm:text-[40px]">Путь роста</h1>
         <p className="mt-1 text-slate-500">Отмечайте уроки для каждого подопечного</p>
+      </div>
+
+      <div className="rounded-[28px] border border-indigo-100 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight">
+              Уроки для воскресенья
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              Выберите урок, который прошел в последнее воскресенье. Следующий урок
+              считается автоматически по кругу из четырёх уроков.
+            </p>
+          </div>
+
+          {scheduleSaving && (
+            <div className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-700">
+              Сохраняем...
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+            <div className="text-sm font-medium text-slate-500">
+              Прошлое воскресенье
+            </div>
+            <div className="mt-2 text-2xl font-bold text-slate-900">
+              {scheduleLoading ? "Загрузка..." : getLessonLabel(lastSundayLesson)}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-indigo-100 bg-indigo-50 p-4">
+            <div className="text-sm font-medium text-indigo-700">
+              Следующее воскресенье
+            </div>
+            <div className="mt-2 text-2xl font-bold text-indigo-900">
+              {scheduleLoading ? "Загрузка..." : getLessonLabel(nextSundayLesson)}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {growthLessons.map((lesson) => {
+            const active = lastSundayLesson === lesson.number;
+
+            return (
+              <button
+                key={lesson.key}
+                onClick={() => updateLastSundayLesson(lesson.number)}
+                disabled={scheduleSaving}
+                className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  active
+                    ? "border-indigo-600 bg-indigo-600 text-white"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                {lesson.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {scheduleError && (
+          <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {scheduleError}
+          </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
