@@ -239,11 +239,16 @@ startEdit: (person: any) => void;
                 options={levelOptions}
               />
               {editForm.level === "core" && (
-                <SelectField
-                  value={editForm.core_role}
-                  onChange={(v) => setEditForm({ ...editForm, core_role: v })}
-                  options={coreRoleOptions}
-                />
+                <div className="space-y-1">
+                  <div className="px-1 text-xs font-semibold uppercase text-slate-400">
+                    Роль в ядре
+                  </div>
+                  <SelectField
+                    value={editForm.core_role}
+                    onChange={(v) => setEditForm({ ...editForm, core_role: v })}
+                    options={coreRoleOptions}
+                  />
+                </div>
               )}
               <Input value={editForm.source} onChange={(v) => setEditForm({ ...editForm, source: v })} placeholder="Источник" />
               <Input value={editForm.service_team} onChange={(v) => setEditForm({ ...editForm, service_team: v })} placeholder="Служение" />

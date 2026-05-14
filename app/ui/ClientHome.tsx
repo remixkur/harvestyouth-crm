@@ -109,6 +109,7 @@ function setActivePage(page: string) {
   const [search, setSearch] = useState("");
   const [mentorFilter, setMentorFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
+  const [coreRoleFilter, setCoreRoleFilter] = useState("all");
   const [archiveFilter, setArchiveFilter] = useState("active");
   const [baptizedFilter, setBaptizedFilter] = useState("all");
   const [growthFilter, setGrowthFilter] = useState("all");
@@ -161,6 +162,11 @@ function setActivePage(page: string) {
       const byMentor = mentorFilter === "all" ? true : p.mentor_name === mentorFilter;
       const byLevel =
         levelFilter === "all" ? true : normalizeLevel(p.level) === levelFilter;
+      const byCoreRole =
+        coreRoleFilter === "all"
+          ? true
+          : normalizeLevel(p.level) === "core" &&
+            normalizeCoreRole(p.core_role || p.level) === coreRoleFilter;
 
       const byBaptized =
         baptizedFilter === "all"
@@ -182,7 +188,15 @@ function setActivePage(page: string) {
 
       const bySearch = p.full_name.toLowerCase().includes(search.toLowerCase());
 
-      return byArchive && byMentor && byLevel && byBaptized && byGrowth && bySearch;
+      return (
+        byArchive &&
+        byMentor &&
+        byLevel &&
+        byCoreRole &&
+        byBaptized &&
+        byGrowth &&
+        bySearch
+      );
     })
     .sort((a, b) => {
       if (sortOrder === "level_asc") {
@@ -832,17 +846,10 @@ function setActivePage(page: string) {
                       total={Math.max(stats.total, 1)}
                       badgeClass={levelBadge.core}
                     />
-                    <LevelBar
-                      label="Лидеры"
-                      value={levelStats.coreLeader}
-                      total={Math.max(levelStats.core, 1)}
-                      badgeClass={levelBadge.core}
-                    />
-                    <LevelBar
-                      label="Пасторы"
-                      value={levelStats.corePastor}
-                      total={Math.max(levelStats.core, 1)}
-                      badgeClass={levelBadge.core}
+                    <CoreRoleSummary
+                      leaders={levelStats.coreLeader}
+                      pastors={levelStats.corePastor}
+                      total={levelStats.core}
                     />
                   </div>
                 </div>
@@ -866,7 +873,7 @@ function setActivePage(page: string) {
                 </div>
 
                 <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
@@ -899,6 +906,16 @@ function setActivePage(page: string) {
                       <option value="church">Церковная</option>
                       <option value="committed">Посвящённая</option>
                       <option value="core">Ядро</option>
+                    </select>
+
+                    <select
+                      value={coreRoleFilter}
+                      onChange={(e) => setCoreRoleFilter(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none"
+                    >
+                      <option value="all">Роль ядра</option>
+                      <option value="leader">Лидеры</option>
+                      <option value="pastor">Пасторы</option>
                     </select>
 
                     <select
@@ -963,11 +980,16 @@ function setActivePage(page: string) {
                         options={levelOptions}
                       />
                       {form.level === "core" && (
-                        <SelectField
-                          value={form.core_role}
-                          onChange={(v) => setForm({ ...form, core_role: v })}
-                          options={coreRoleOptions}
-                        />
+                        <div className="space-y-1">
+                          <div className="px-1 text-xs font-semibold uppercase text-slate-400">
+                            Роль в ядре
+                          </div>
+                          <SelectField
+                            value={form.core_role}
+                            onChange={(v) => setForm({ ...form, core_role: v })}
+                            options={coreRoleOptions}
+                          />
+                        </div>
                       )}
                       <Input value={form.source} onChange={(v) => setForm({ ...form, source: v })} placeholder="Источник" />
                       <Input value={form.service_team} onChange={(v) => setForm({ ...form, service_team: v })} placeholder="Служение" />
@@ -1190,13 +1212,18 @@ function setActivePage(page: string) {
                             options={levelOptions}
                           />
                           {editForm.level === "core" && (
-                            <SelectField
-                              value={editForm.core_role}
-                              onChange={(v) =>
-                                setEditForm({ ...editForm, core_role: v })
-                              }
-                              options={coreRoleOptions}
-                            />
+                            <div className="space-y-1">
+                              <div className="px-1 text-xs font-semibold uppercase text-slate-400">
+                                Роль в ядре
+                              </div>
+                              <SelectField
+                                value={editForm.core_role}
+                                onChange={(v) =>
+                                  setEditForm({ ...editForm, core_role: v })
+                                }
+                                options={coreRoleOptions}
+                              />
+                            </div>
                           )}
                           <Input value={editForm.source} onChange={(v) => setEditForm({ ...editForm, source: v })} placeholder="Источник" />
                           <Input value={editForm.service_team} onChange={(v) => setEditForm({ ...editForm, service_team: v })} placeholder="Служение" />
@@ -1661,6 +1688,53 @@ function LevelBar({
       </div>
 
       <div className="text-right text-2xl text-slate-500">{value}</div>
+    </div>
+  );
+}
+
+function CoreRoleSummary({
+  leaders,
+  pastors,
+  total,
+}: {
+  leaders: number;
+  pastors: number;
+  total: number;
+}) {
+  const roles = [
+    { role: "leader", value: leaders },
+    { role: "pastor", value: pastors },
+  ] as const;
+
+  return (
+    <div className="border-l border-slate-200 pl-4 sm:ml-[140px]">
+      <div className="mb-3 text-sm font-medium text-slate-500">Роли внутри ядра</div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {roles.map(({ role, value }) => {
+          const percent = total > 0 ? Math.round((value / total) * 100) : 0;
+
+          return (
+            <div
+              key={role}
+              className="flex min-w-0 items-center justify-between gap-3 border-b border-slate-100 pb-2 last:border-b-0 sm:border-b-0 sm:pb-0"
+            >
+              <span
+                className={cx(
+                  "inline-flex rounded-full px-3 py-1 text-sm font-semibold tracking-wide",
+                  getCoreRoleBadgeClass(role)
+                )}
+              >
+                {getCoreRoleLabel(role)}
+              </span>
+
+              <span className="shrink-0 text-sm font-semibold text-slate-500">
+                {value} ({percent}%)
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
