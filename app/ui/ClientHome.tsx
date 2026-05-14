@@ -7,11 +7,15 @@ import MobilePersonScreen from "./MobilePersonScreen";
 import { supabase } from "../../lib/supabase";
 import HomeGroupReportsSection from "./HomeGroupReportsSection";
 import {
+  coreRoleOptions,
+  getCoreRoleBadgeClass,
+  getCoreRoleLabel,
   getLevelBadgeClass,
   getLevelLabel,
   levelBadge,
   levelOptions,
   levelOrder,
+  normalizeCoreRole,
   normalizeLevel,
 } from "./levels";
 
@@ -22,6 +26,7 @@ type Person = {
   gender: string | null;
   mentor_name: string | null;
   level: string;
+  core_role: string | null;
   source: string | null;
   service_team: string | null;
   home_group: string | null;
@@ -121,6 +126,7 @@ function setActivePage(page: string) {
     contact: "",
     mentor_name: profile?.role === "mentor" ? profile?.mentor_name || "" : "",
     level: "local",
+    core_role: "leader",
     source: "",
     service_team: "",
     home_group: "",
@@ -134,6 +140,7 @@ function setActivePage(page: string) {
     contact: "",
     mentor_name: "",
     level: "local",
+    core_role: "leader",
     source: "",
     service_team: "",
     home_group: "",
@@ -222,10 +229,20 @@ function setActivePage(page: string) {
     committed: people.filter(
       (p) => !p.archived && normalizeLevel(p.level) === "committed"
     ).length,
-    leader: people.filter((p) => !p.archived && normalizeLevel(p.level) === "leader")
+    core: people.filter((p) => !p.archived && normalizeLevel(p.level) === "core")
       .length,
-    pastor: people.filter((p) => !p.archived && normalizeLevel(p.level) === "pastor")
-      .length,
+    coreLeader: people.filter(
+      (p) =>
+        !p.archived &&
+        normalizeLevel(p.level) === "core" &&
+        normalizeCoreRole(p.core_role || p.level) === "leader"
+    ).length,
+    corePastor: people.filter(
+      (p) =>
+        !p.archived &&
+        normalizeLevel(p.level) === "core" &&
+        normalizeCoreRole(p.core_role || p.level) === "pastor"
+    ).length,
   };
 
   const mentorOptions = Array.from(
@@ -238,6 +255,7 @@ function setActivePage(page: string) {
       contact: person.contact || "",
       mentor_name: person.mentor_name || "",
       level: normalizeLevel(person.level),
+      core_role: normalizeCoreRole(person.core_role || person.level),
       source: person.source || "",
       service_team: person.service_team || "",
       home_group: person.home_group || "",
@@ -261,6 +279,7 @@ function setActivePage(page: string) {
         contact: editForm.contact || null,
         mentor_name: editForm.mentor_name || null,
         level: editForm.level,
+        core_role: editForm.level === "core" ? editForm.core_role : null,
         source: editForm.source || null,
         service_team: editForm.service_team || null,
         home_group: editForm.home_group || null,
@@ -567,6 +586,7 @@ function setActivePage(page: string) {
           contact: form.contact || null,
           mentor_name: mentorNameToSave || null,
           level: form.level,
+          core_role: form.level === "core" ? form.core_role : null,
           source: form.source || null,
           service_team: form.service_team || null,
           home_group: form.home_group || null,
@@ -607,6 +627,7 @@ function setActivePage(page: string) {
         contact: "",
         mentor_name: profile?.role === "mentor" ? profile?.mentor_name || "" : "",
         level: "local",
+        core_role: "leader",
         source: "",
         service_team: "",
         home_group: "",
@@ -806,16 +827,22 @@ function setActivePage(page: string) {
                       badgeClass={levelBadge.committed}
                     />
                     <LevelBar
-                      label="Лидеры"
-                      value={levelStats.leader}
+                      label="Ядро"
+                      value={levelStats.core}
                       total={Math.max(stats.total, 1)}
-                      badgeClass={levelBadge.leader}
+                      badgeClass={levelBadge.core}
+                    />
+                    <LevelBar
+                      label="Лидеры"
+                      value={levelStats.coreLeader}
+                      total={Math.max(levelStats.core, 1)}
+                      badgeClass={levelBadge.core}
                     />
                     <LevelBar
                       label="Пасторы"
-                      value={levelStats.pastor}
-                      total={Math.max(stats.total, 1)}
-                      badgeClass={levelBadge.pastor}
+                      value={levelStats.corePastor}
+                      total={Math.max(levelStats.core, 1)}
+                      badgeClass={levelBadge.core}
                     />
                   </div>
                 </div>
@@ -871,8 +898,7 @@ function setActivePage(page: string) {
                       <option value="visiting">Посещающая</option>
                       <option value="church">Церковная</option>
                       <option value="committed">Посвящённая</option>
-                      <option value="leader">Лидер</option>
-                      <option value="pastor">Пастор</option>
+                      <option value="core">Ядро</option>
                     </select>
 
                     <select
@@ -912,8 +938,8 @@ function setActivePage(page: string) {
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none xl:col-span-1 md:col-span-2"
                     >
                       <option value="default">Без сортировки</option>
-                      <option value="level_asc">От местной к пасторам</option>
-                      <option value="level_desc">От пасторов к местной</option>
+                      <option value="level_asc">От местной к ядру</option>
+                      <option value="level_desc">От ядра к местной</option>
                     </select>
                   </div>
                 </div>
@@ -936,6 +962,13 @@ function setActivePage(page: string) {
                         onChange={(v) => setForm({ ...form, level: v })}
                         options={levelOptions}
                       />
+                      {form.level === "core" && (
+                        <SelectField
+                          value={form.core_role}
+                          onChange={(v) => setForm({ ...form, core_role: v })}
+                          options={coreRoleOptions}
+                        />
+                      )}
                       <Input value={form.source} onChange={(v) => setForm({ ...form, source: v })} placeholder="Источник" />
                       <Input value={form.service_team} onChange={(v) => setForm({ ...form, service_team: v })} placeholder="Служение" />
                       <Input value={form.home_group} onChange={(v) => setForm({ ...form, home_group: v })} placeholder="Домашка" />
@@ -996,14 +1029,7 @@ function setActivePage(page: string) {
                           <div className="text-[15px] text-slate-600">{person.mentor_name || "—"}</div>
 
                           <div>
-                            <span
-                              className={cx(
-                                "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
-                                getLevelBadgeClass(person.level)
-                              )}
-                            >
-                              {getLevelLabel(person.level)}
-                            </span>
+                            <PersonLevelBadges person={person} />
                           </div>
 
                           <div>
@@ -1061,14 +1087,7 @@ function setActivePage(page: string) {
                             <div className="mt-1 text-sm text-slate-500">{person.mentor_name || "—"}</div>
                           </div>
 
-                          <span
-                            className={cx(
-                              "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
-                              getLevelBadgeClass(person.level)
-                            )}
-                          >
-                            {getLevelLabel(person.level)}
-                          </span>
+                          <PersonLevelBadges person={person} />
                         </div>
 
                         <div className="mt-3 flex items-center justify-between text-sm">
@@ -1143,6 +1162,20 @@ function setActivePage(page: string) {
                           >
                             {getLevelLabel(selectedPerson.level)}
                           </span>
+                          {normalizeLevel(selectedPerson.level) === "core" && (
+                            <span
+                              className={cx(
+                                "ml-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
+                                getCoreRoleBadgeClass(
+                                  selectedPerson.core_role || selectedPerson.level
+                                )
+                              )}
+                            >
+                              {getCoreRoleLabel(
+                                selectedPerson.core_role || selectedPerson.level
+                              )}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1156,6 +1189,15 @@ function setActivePage(page: string) {
                             onChange={(v) => setEditForm({ ...editForm, level: v })}
                             options={levelOptions}
                           />
+                          {editForm.level === "core" && (
+                            <SelectField
+                              value={editForm.core_role}
+                              onChange={(v) =>
+                                setEditForm({ ...editForm, core_role: v })
+                              }
+                              options={coreRoleOptions}
+                            />
+                          )}
                           <Input value={editForm.source} onChange={(v) => setEditForm({ ...editForm, source: v })} placeholder="Источник" />
                           <Input value={editForm.service_team} onChange={(v) => setEditForm({ ...editForm, service_team: v })} placeholder="Служение" />
                           <Input value={editForm.home_group} onChange={(v) => setEditForm({ ...editForm, home_group: v })} placeholder="Домашка" />
@@ -1192,6 +1234,14 @@ function setActivePage(page: string) {
                             <Detail label="Контакт" value={selectedPerson.contact || "—"} />
                             <Detail label="Пол" value={selectedPerson.gender || "—"} />
                             <Detail label="Наставник" value={selectedPerson.mentor_name || "—"} />
+                            {normalizeLevel(selectedPerson.level) === "core" && (
+                              <Detail
+                                label="Роль в ядре"
+                                value={getCoreRoleLabel(
+                                  selectedPerson.core_role || selectedPerson.level
+                                )}
+                              />
+                            )}
                             <Detail label="Источник" value={selectedPerson.source || "—"} />
                             <Detail label="Служение" value={selectedPerson.service_team || "—"} />
                             <Detail label="Домашка" value={selectedPerson.home_group || "—"} />
@@ -1420,6 +1470,35 @@ function setActivePage(page: string) {
         </div>
       </div>
     </main>
+  );
+}
+
+function PersonLevelBadges({ person }: { person: Person }) {
+  const isCore = normalizeLevel(person.level) === "core";
+  const coreRole = normalizeCoreRole(person.core_role || person.level);
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      <span
+        className={cx(
+          "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
+          getLevelBadgeClass(person.level)
+        )}
+      >
+        {getLevelLabel(person.level)}
+      </span>
+
+      {isCore && (
+        <span
+          className={cx(
+            "inline-flex rounded-full px-3 py-1 text-xs font-semibold tracking-wide",
+            getCoreRoleBadgeClass(coreRole)
+          )}
+        >
+          {getCoreRoleLabel(coreRole)}
+        </span>
+      )}
+    </div>
   );
 }
 
