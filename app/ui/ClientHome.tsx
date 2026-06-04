@@ -86,6 +86,17 @@ function getDaysAgo(dateString: string | null) {
   return `${diffDays} дней назад`;
 }
 
+function isGrowthEnrolled(person: Person) {
+  return (
+    Number(person.path_growth || 0) > 0 ||
+    person.lesson_1 ||
+    person.lesson_2 ||
+    person.lesson_3 ||
+    person.lesson_4 ||
+    person.full_course
+  );
+}
+
 export default function ClientHome({
   initialPeople,
   profile,
@@ -336,7 +347,7 @@ function setActivePage(page: string) {
 
     const { data, error } = await supabase
       .from("people")
-      .update({ ...updatedLessons, full_course })
+      .update({ ...updatedLessons, full_course, path_growth: selectedPerson.path_growth || 1 })
       .eq("id", selectedPerson.id)
       .select()
       .single();
@@ -370,7 +381,7 @@ function setActivePage(page: string) {
 
     const { data, error } = await supabase
       .from("people")
-      .update({ ...updatedLessons, full_course })
+      .update({ ...updatedLessons, full_course, path_growth: person.path_growth || 1 })
       .eq("id", person.id)
       .select()
       .single();
@@ -450,6 +461,37 @@ function setActivePage(page: string) {
     setPeople((prev) => prev.map((p) => (p.id === data.id ? data : p)));
   }
 }
+
+  async function toggleGrowthEnrolled(person: Person) {
+    const newValue = !isGrowthEnrolled(person);
+
+    const updatePayload = newValue
+      ? { path_growth: person.path_growth || 1 }
+      : {
+          path_growth: 0,
+          lesson_1: false,
+          lesson_2: false,
+          lesson_3: false,
+          lesson_4: false,
+          full_course: false,
+        };
+
+    const { data, error } = await supabase
+      .from("people")
+      .update(updatePayload)
+      .eq("id", person.id)
+      .select()
+      .single();
+
+    if (error) {
+      alert("Ошибка обновления пути роста: " + error.message);
+      return;
+    }
+
+    if (data) {
+      setPeople((prev) => prev.map((p) => (p.id === data.id ? data : p)));
+    }
+  }
 
   async function quickToggleBaptized(person: Person) {
     const { data, error } = await supabase
@@ -1165,6 +1207,7 @@ function setActivePage(page: string) {
                     startEdit={startEdit}
                     handleArchivePerson={handleArchivePerson}
                     handleToggleBaptized={handleToggleBaptized}
+                    toggleGrowthEnrolled={toggleGrowthEnrolled}
                     toggleLesson={toggleLesson}
                   />
 
@@ -1282,7 +1325,11 @@ function setActivePage(page: string) {
                             />
                             <Detail
                               label="Путь роста"
-                              value={`${Number(selectedPerson.lesson_1) + Number(selectedPerson.lesson_2) + Number(selectedPerson.lesson_3) + Number(selectedPerson.lesson_4)}/4 уроков`}
+                              value={
+                                isGrowthEnrolled(selectedPerson)
+                                  ? `${Number(selectedPerson.lesson_1) + Number(selectedPerson.lesson_2) + Number(selectedPerson.lesson_3) + Number(selectedPerson.lesson_4)}/4 уроков`
+                                  : "Не добавлен"
+                              }
                             />
                           </div>
 
@@ -1362,6 +1409,15 @@ function setActivePage(page: string) {
 </button>
 
                             <button
+                              onClick={() => toggleGrowthEnrolled(selectedPerson)}
+                              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium hover:bg-slate-50"
+                            >
+                              {isGrowthEnrolled(selectedPerson)
+                                ? "Убрать из пути роста"
+                                : "Добавить в путь роста"}
+                            </button>
+
+                            <button
                               onClick={handleArchivePerson}
                               className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-500 hover:bg-slate-50"
                             >
@@ -1421,6 +1477,7 @@ function setActivePage(page: string) {
                 people={people}
                 quickToggleLesson={quickToggleLesson}
                 quickToggleBaptized={quickToggleBaptized}
+                toggleGrowthEnrolled={toggleGrowthEnrolled}
               />
             )}
 
