@@ -26,6 +26,7 @@ type Person = {
   last_meeting_date: string | null;
   next_step: string | null;
   comment: string | null;
+  path_growth?: number | null;
   lesson_1: boolean;
   lesson_2: boolean;
   lesson_3: boolean;
@@ -49,6 +50,17 @@ type EditForm = {
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function isGrowthEnrolled(person: Person) {
+  return (
+    Number(person.path_growth || 0) > 0 ||
+    person.lesson_1 ||
+    person.lesson_2 ||
+    person.lesson_3 ||
+    person.lesson_4 ||
+    person.full_course
+  );
 }
 
 function Detail({ label, value }: { label: string; value: string }) {
@@ -149,6 +161,7 @@ export default function MobilePersonScreen({
   startEdit,
   handleArchivePerson,
   handleToggleBaptized,
+  toggleGrowthEnrolled,
   toggleLesson,
 }: {
   selectedPerson: Person | null;
@@ -172,6 +185,7 @@ export default function MobilePersonScreen({
 startEdit: (person: any) => void;
   handleArchivePerson: () => void;
   handleToggleBaptized: () => void;
+  toggleGrowthEnrolled: (person: any) => void;
   toggleLesson: (lesson: "lesson_1" | "lesson_2" | "lesson_3" | "lesson_4") => void;
 }) {
   if (!selectedPerson || !mobileDetailOpen) return null;
@@ -307,7 +321,11 @@ startEdit: (person: any) => void;
                 />
                 <Detail
                   label="Путь роста"
-                  value={`${Number(selectedPerson.lesson_1) + Number(selectedPerson.lesson_2) + Number(selectedPerson.lesson_3) + Number(selectedPerson.lesson_4)}/4 уроков`}
+                  value={
+                    isGrowthEnrolled(selectedPerson)
+                      ? `${Number(selectedPerson.lesson_1) + Number(selectedPerson.lesson_2) + Number(selectedPerson.lesson_3) + Number(selectedPerson.lesson_4)}/4 уроков`
+                      : "Не добавлен"
+                  }
                 />
               </div>
 
@@ -380,6 +398,15 @@ startEdit: (person: any) => void;
                   className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium text-slate-500 hover:bg-slate-50"
                 >
                   В архив
+                </button>
+
+                <button
+                  onClick={() => toggleGrowthEnrolled(selectedPerson)}
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-left text-sm font-medium hover:bg-slate-50"
+                >
+                  {isGrowthEnrolled(selectedPerson)
+                    ? "Убрать из пути роста"
+                    : "Добавить в путь роста"}
                 </button>
 
                 <button
