@@ -60,6 +60,10 @@ export default function HomeGroupReportsSection({
   const [showForm, setShowForm] = useState(false);
   const [editingReportId, setEditingReportId] = useState<string | null>(null);
   const [reportsView, setReportsView] = useState<"mine" | "all">("mine");
+  const [photoPreview, setPhotoPreview] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
 
   const [form, setForm] = useState<ReportForm>(
     emptyForm(profile?.mentor_name || "")
@@ -93,6 +97,25 @@ export default function HomeGroupReportsSection({
   useEffect(() => {
     loadReports();
   }, []);
+
+  useEffect(() => {
+    if (!photoPreview) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPhotoPreview(null);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [photoPreview]);
 
   function resetForm() {
     setForm(emptyForm(profile?.mentor_name || ""));
@@ -499,11 +522,26 @@ export default function HomeGroupReportsSection({
 
                 {report.photo_url && (
                   <div className="mt-4">
-                    <img
-                      src={report.photo_url}
-                      alt={`Фото отчёта ${report.group_name}`}
-                      className="max-h-[360px] w-full rounded-2xl object-cover"
-                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPhotoPreview({
+                          url: report.photo_url!,
+                          title: report.group_name,
+                        })
+                      }
+                      className="group relative block w-full overflow-hidden rounded-2xl text-left"
+                      aria-label={`Открыть фото отчёта ${report.group_name}`}
+                    >
+                      <img
+                        src={report.photo_url}
+                        alt={`Фото отчёта ${report.group_name}`}
+                        className="max-h-[420px] w-full object-cover transition duration-200 group-hover:scale-[1.01]"
+                      />
+                      <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 backdrop-blur">
+                        Открыть фото
+                      </span>
+                    </button>
                   </div>
                 )}
 
@@ -520,6 +558,35 @@ export default function HomeGroupReportsSection({
           </div>
         )}
       </div>
+
+      {photoPreview && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/90 p-3 sm:p-6"
+          onClick={() => setPhotoPreview(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Фото отчёта ${photoPreview.title}`}
+        >
+          <div className="absolute left-4 top-4 max-w-[calc(100vw-96px)] rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur sm:left-6 sm:top-6">
+            {photoPreview.title}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setPhotoPreview(null)}
+            className="absolute right-4 top-4 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg sm:right-6 sm:top-6"
+          >
+            Закрыть
+          </button>
+
+          <img
+            src={photoPreview.url}
+            alt={`Фото отчёта ${photoPreview.title}`}
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[88vh] max-w-full rounded-2xl object-contain shadow-2xl"
+          />
+        </div>
+      )}
     </div>
   );
 }
